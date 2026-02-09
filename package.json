@@ -2,7 +2,7 @@
   "name": "css-oklch",
   "displayName": "CSS OKLCH Color Preview",
   "description": "Color swatches and picker for oklch() colors in CSS, SCSS, and Less",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "publisher": "samalone",
   "license": "MIT",
   "repository": {
@@ -26,8 +26,57 @@
       {
         "command": "cssOklch.openColorPicker",
         "title": "OKLCH: Open Color Picker"
+      },
+      {
+        "command": "cssOklch.convertSelection",
+        "title": "OKLCH: Convert Selection to oklch"
+      },
+      {
+        "command": "cssOklch.convertDocument",
+        "title": "OKLCH: Convert Document to oklch"
       }
     ],
+    "configuration": {
+      "title": "CSS OKLCH",
+      "properties": {
+        "cssOklch.lightnessFormat": {
+          "type": "string",
+          "enum": [
+            "number",
+            "percentage"
+          ],
+          "default": "number",
+          "description": "Format for the lightness component: number (0.7) or percentage (70%)"
+        },
+        "cssOklch.chromaFormat": {
+          "type": "string",
+          "enum": [
+            "number",
+            "percentage"
+          ],
+          "default": "number",
+          "description": "Format for the chroma component: number (0.15) or percentage (37.5%)"
+        },
+        "cssOklch.hueFormat": {
+          "type": "string",
+          "enum": [
+            "number",
+            "deg"
+          ],
+          "default": "number",
+          "description": "Format for the hue component: number (180) or with deg suffix (180deg)"
+        },
+        "cssOklch.alphaFormat": {
+          "type": "string",
+          "enum": [
+            "number",
+            "percentage"
+          ],
+          "default": "number",
+          "description": "Format for the alpha component: number (0.8) or percentage (80%)"
+        }
+      }
+    },
     "keybindings": [
       {
         "command": "cssOklch.openColorPicker",

@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
 import * as crypto from "crypto";
 import { findCssColorAtOffset } from "./cssColorParser";
+import { formatOklch, getFormatOptions } from "./formatOklch";
 
 interface OklchColor {
   L: number;
@@ -140,27 +141,12 @@ export function openPickerPanel(
   );
 }
 
-function formatOklch(
-  L: number,
-  C: number,
-  H: number,
-  alpha: number
-): string {
-  const lStr = parseFloat(L.toFixed(4));
-  const cStr = parseFloat(C.toFixed(4));
-  const hStr = parseFloat(H.toFixed(2));
-  if (alpha < 1) {
-    const aStr = parseFloat(alpha.toFixed(2));
-    return `oklch(${lStr} ${cStr} ${hStr} / ${aStr})`;
-  }
-  return `oklch(${lStr} ${cStr} ${hStr})`;
-}
-
 function getWebviewHtml(nonce: string, initialColor?: OklchColor): string {
   const L = initialColor?.L ?? 0.7;
   const C = initialColor?.C ?? 0.15;
   const H = initialColor?.H ?? 180;
   const alpha = initialColor?.alpha ?? 1;
+  const fmtOpts = getFormatOptions();
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -312,6 +298,11 @@ function getWebviewHtml(nonce: string, initialColor?: OklchColor): string {
       font-family: var(--vscode-editor-font-family, monospace);
       font-size: 12px;
     }
+    .slider-unit {
+      font-size: 12px;
+      opacity: 0.6;
+      min-width: 24px;
+    }
     .buttons {
       display: flex;
       gap: 8px;
@@ -363,22 +354,26 @@ function getWebviewHtml(nonce: string, initialColor?: OklchColor): string {
     <div class="slider-row">
       <span class="slider-label">L (Lightness)</span>
       <input type="range" id="sliderL" min="0" max="1" step="0.001">
-      <input type="number" id="numL" min="0" max="1" step="0.001">
+      <input type="number" id="numL" min="0" max="${fmtOpts.lightnessFormat === "percentage" ? "100" : "1"}" step="${fmtOpts.lightnessFormat === "percentage" ? "0.1" : "0.001"}">
+      ${fmtOpts.lightnessFormat === "percentage" ? '<span class="slider-unit">%</span>' : ""}
     </div>
     <div class="slider-row">
       <span class="slider-label">C (Chroma)</span>
       <input type="range" id="sliderC" min="0" max="0.4" step="0.001">
-      <input type="number" id="numC" min="0" max="0.5" step="0.001">
+      <input type="number" id="numC" min="0" max="${fmtOpts.chromaFormat === "percentage" ? "125" : "0.5"}" step="${fmtOpts.chromaFormat === "percentage" ? "0.1" : "0.001"}">
+      ${fmtOpts.chromaFormat === "percentage" ? '<span class="slider-unit">%</span>' : ""}
     </div>
     <div class="slider-row">
       <span class="slider-label">H (Hue)</span>
       <input type="range" id="sliderH" min="0" max="360" step="0.5">
       <input type="number" id="numH" min="0" max="360" step="0.5">
+      ${fmtOpts.hueFormat === "deg" ? '<span class="slider-unit">deg</span>' : ""}
     </div>
     <div class="slider-row">
       <span class="slider-label">A (Alpha)</span>
       <input type="range" id="sliderA" min="0" max="1" step="0.01">
-      <input type="number" id="numA" min="0" max="1" step="0.01">
+      <input type="number" id="numA" min="0" max="${fmtOpts.alphaFormat === "percentage" ? "100" : "1"}" step="${fmtOpts.alphaFormat === "percentage" ? "1" : "0.01"}">
+      ${fmtOpts.alphaFormat === "percentage" ? '<span class="slider-unit">%</span>' : ""}
     </div>
   </div>
 
@@ -435,6 +430,31 @@ function getWebviewHtml(nonce: string, initialColor?: OklchColor): string {
       let H = Math.atan2(bv, a) * 180 / Math.PI;
       if (H < 0) H += 360;
       return { L, C, H };
+    }
+
+    // --- Format settings ---
+    const fmtLightness = '${fmtOpts.lightnessFormat}';
+    const fmtChroma = '${fmtOpts.chromaFormat}';
+    const fmtHue = '${fmtOpts.hueFormat}';
+    const fmtAlpha = '${fmtOpts.alphaFormat}';
+
+    function formatOklchValue(L, C, H, A) {
+      const lStr = fmtLightness === 'percentage'
+        ? parseFloat((L * 100).toFixed(2)) + '%'
+        : '' + parseFloat(L.toFixed(4));
+      const cStr = fmtChroma === 'percentage'
+        ? parseFloat((C / 0.4 * 100).toFixed(2)) + '%'
+        : '' + parseFloat(C.toFixed(4));
+      const hStr = fmtHue === 'deg'
+        ? parseFloat(H.toFixed(2)) + 'deg'
+        : '' + parseFloat(H.toFixed(2));
+      if (A < 1) {
+        const aStr = fmtAlpha === 'percentage'
+          ? parseFloat((A * 100).toFixed(0)) + '%'
+          : '' + parseFloat(A.toFixed(2));
+        return 'oklch(' + lStr + ' ' + cStr + ' ' + hStr + ' / ' + aStr + ')';
+      }
+      return 'oklch(' + lStr + ' ' + cStr + ' ' + hStr + ')';
     }
 
     // --- State ---
@@ -536,10 +556,16 @@ function getWebviewHtml(nonce: string, initialColor?: OklchColor): string {
       sliderC.value = curC;
       sliderH.value = curH;
       sliderA.value = curA;
-      numL.value = curL.toFixed(4);
-      numC.value = curC.toFixed(4);
-      numH.value = curH.toFixed(2);
-      numA.value = curA.toFixed(2);
+      numL.value = fmtLightness === 'percentage'
+        ? parseFloat((curL * 100).toFixed(2))
+        : parseFloat(curL.toFixed(4));
+      numC.value = fmtChroma === 'percentage'
+        ? parseFloat((curC / 0.4 * 100).toFixed(2))
+        : parseFloat(curC.toFixed(4));
+      numH.value = parseFloat(curH.toFixed(2));
+      numA.value = fmtAlpha === 'percentage'
+        ? parseFloat((curA * 100).toFixed(0))
+        : parseFloat(curA.toFixed(2));
       updatePreview();
       drawColorPlane();
     }
@@ -558,27 +584,25 @@ function getWebviewHtml(nonce: string, initialColor?: OklchColor): string {
         hexValue.textContent = hex;
       }
       gamutWarning.style.display = inGamut ? 'none' : 'block';
-
-      const lStr = parseFloat(curL.toFixed(4));
-      const cStr = parseFloat(curC.toFixed(4));
-      const hStr = parseFloat(curH.toFixed(2));
-      if (curA < 1) {
-        const aStr = parseFloat(curA.toFixed(2));
-        oklchValue.textContent = 'oklch(' + lStr + ' ' + cStr + ' ' + hStr + ' / ' + aStr + ')';
-      } else {
-        oklchValue.textContent = 'oklch(' + lStr + ' ' + cStr + ' ' + hStr + ')';
-      }
+      oklchValue.textContent = formatOklchValue(curL, curC, curH, curA);
     }
 
     // --- Slider/number input events ---
-    function onSliderInput(slider, num, setter) {
+    // Sliders always use internal values; number inputs use display values
+    function onSliderInput(slider, num, setter, numToInternal) {
       slider.addEventListener('input', () => { setter(parseFloat(slider.value)); syncFromState(); });
-      num.addEventListener('input', () => { const v = parseFloat(num.value); if (!isNaN(v)) { setter(v); syncFromState(); } });
+      num.addEventListener('input', () => {
+        const v = parseFloat(num.value);
+        if (!isNaN(v)) { setter(numToInternal ? numToInternal(v) : v); syncFromState(); }
+      });
     }
-    onSliderInput(sliderL, numL, v => { curL = v; });
-    onSliderInput(sliderC, numC, v => { curC = v; });
-    onSliderInput(sliderH, numH, v => { curH = v; });
-    onSliderInput(sliderA, numA, v => { curA = v; });
+    onSliderInput(sliderL, numL, v => { curL = v; },
+      fmtLightness === 'percentage' ? v => v / 100 : null);
+    onSliderInput(sliderC, numC, v => { curC = v; },
+      fmtChroma === 'percentage' ? v => v / 100 * 0.4 : null);
+    onSliderInput(sliderH, numH, v => { curH = v; }, null);
+    onSliderInput(sliderA, numA, v => { curA = v; },
+      fmtAlpha === 'percentage' ? v => v / 100 : null);
 
     // Redraw canvas only when L changes (other changes just move crosshair)
     sliderL.addEventListener('input', () => drawColorPlane());

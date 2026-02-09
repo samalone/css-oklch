@@ -1,4 +1,4 @@
-import { findOklchAtOffset } from "./oklchParser";
+import { findOklchAtOffset, findOklchColors } from "./oklchParser";
 import { srgbToOklch, hslToSrgb, oklabToOklch } from "./colorConversion";
 
 export type CssColorFormat = "oklch" | "hex" | "rgb" | "hsl" | "named" | "oklab";
@@ -44,6 +44,24 @@ export function findCssColorAtOffset(
   return null;
 }
 
+/**
+ * Find all CSS colors in the given text, including oklch() values.
+ * Returns matches sorted by startOffset. oklch() values are included
+ * so that batch conversion can reformat them to the user's preferred format.
+ */
+export function findAllCssColors(text: string): CssColorMatch[] {
+  const results: CssColorMatch[] = [];
+  // Include existing oklch() values for reformatting
+  for (const m of findOklchColors(text)) {
+    results.push({ ...m, originalFormat: "oklch" });
+  }
+  results.push(...findAllFunctionalColors(text));
+  results.push(...findAllHexColors(text));
+  results.push(...findAllNamedColors(text));
+  results.sort((a, b) => a.startOffset - b.startOffset);
+  return results;
+}
+
 // --- Functional color parser (rgb, hsl, oklab) ---
 
 const FUNC_COLOR_REGEX = /(rgba?|hsla?|oklab)\(\s*([^)]*)\s*\)/gi;
@@ -78,6 +96,35 @@ function findFunctionalColorAtOffset(
     }
   }
   return null;
+}
+
+function findAllFunctionalColors(text: string): CssColorMatch[] {
+  const results: CssColorMatch[] = [];
+  FUNC_COLOR_REGEX.lastIndex = 0;
+  let match: RegExpExecArray | null;
+  while ((match = FUNC_COLOR_REGEX.exec(text)) !== null) {
+    const start = match.index;
+    const end = start + match[0].length;
+    const funcName = match[1].toLowerCase();
+    const interior = match[2].trim();
+
+    if (interior.startsWith("from")) {
+      continue;
+    }
+
+    let result: CssColorMatch | null = null;
+    if (funcName === "rgb" || funcName === "rgba") {
+      result = parseRgbInterior(interior, start, end);
+    } else if (funcName === "hsl" || funcName === "hsla") {
+      result = parseHslInterior(interior, start, end);
+    } else if (funcName === "oklab") {
+      result = parseOklabInterior(interior, start, end);
+    }
+    if (result) {
+      results.push(result);
+    }
+  }
+  return results;
 }
 
 function splitColorArgs(interior: string): {
@@ -344,6 +391,60 @@ function findHexColorAtOffset(
   return null;
 }
 
+function findAllHexColors(text: string): CssColorMatch[] {
+  const results: CssColorMatch[] = [];
+  HEX_REGEX.lastIndex = 0;
+  let match: RegExpExecArray | null;
+  while ((match = HEX_REGEX.exec(text)) !== null) {
+    const start = match.index;
+    const end = start + match[0].length;
+    const hex = match[1];
+    const len = hex.length;
+    if (len !== 3 && len !== 4 && len !== 6 && len !== 8) {
+      continue;
+    }
+    if (start > 0) {
+      const prev = text[start - 1];
+      if (/[a-zA-Z0-9_-]/.test(prev)) {
+        continue;
+      }
+    }
+
+    let r: number, g: number, b: number, alpha = 1;
+    if (len === 3) {
+      r = parseInt(hex[0] + hex[0], 16) / 255;
+      g = parseInt(hex[1] + hex[1], 16) / 255;
+      b = parseInt(hex[2] + hex[2], 16) / 255;
+    } else if (len === 4) {
+      r = parseInt(hex[0] + hex[0], 16) / 255;
+      g = parseInt(hex[1] + hex[1], 16) / 255;
+      b = parseInt(hex[2] + hex[2], 16) / 255;
+      alpha = parseInt(hex[3] + hex[3], 16) / 255;
+    } else if (len === 6) {
+      r = parseInt(hex.slice(0, 2), 16) / 255;
+      g = parseInt(hex.slice(2, 4), 16) / 255;
+      b = parseInt(hex.slice(4, 6), 16) / 255;
+    } else {
+      r = parseInt(hex.slice(0, 2), 16) / 255;
+      g = parseInt(hex.slice(2, 4), 16) / 255;
+      b = parseInt(hex.slice(4, 6), 16) / 255;
+      alpha = parseInt(hex.slice(6, 8), 16) / 255;
+    }
+
+    const oklch = srgbToOklch(r, g, b);
+    results.push({
+      startOffset: start,
+      endOffset: end,
+      L: oklch.L,
+      C: oklch.C,
+      H: oklch.H,
+      alpha,
+      originalFormat: "hex",
+    });
+  }
+  return results;
+}
+
 // --- Named color parser ---
 
 function findNamedColorAtOffset(
@@ -383,6 +484,54 @@ function findNamedColorAtOffset(
     }
   }
   return null;
+}
+
+// Build a regex that matches any named color as a whole word.
+// Lazy-initialized on first use.
+let namedColorRegex: RegExp | undefined;
+
+function getNamedColorRegex(): RegExp {
+  if (!namedColorRegex) {
+    // Sort by length descending so longer names match first (e.g. "darkred" before "red")
+    const names = Object.keys(NAMED_COLORS).sort((a, b) => b.length - a.length);
+    namedColorRegex = new RegExp(`\\b(${names.join("|")})\\b`, "gi");
+  }
+  namedColorRegex.lastIndex = 0;
+  return namedColorRegex;
+}
+
+function findAllNamedColors(text: string): CssColorMatch[] {
+  const results: CssColorMatch[] = [];
+  const regex = getNamedColorRegex();
+  let match: RegExpExecArray | null;
+  while ((match = regex.exec(text)) !== null) {
+    const start = match.index;
+    const end = start + match[0].length;
+    const word = match[0].toLowerCase();
+
+    // Don't match inside custom properties (--red) or function calls (red())
+    if (start > 0 && text[start - 1] === "-") {
+      continue;
+    }
+    if (end < text.length && text[end] === "(") {
+      continue;
+    }
+
+    const rgb = NAMED_COLORS[word];
+    if (rgb) {
+      const oklch = srgbToOklch(rgb[0] / 255, rgb[1] / 255, rgb[2] / 255);
+      results.push({
+        startOffset: start,
+        endOffset: end,
+        L: oklch.L,
+        C: oklch.C,
+        H: oklch.H,
+        alpha: 1,
+        originalFormat: "named",
+      });
+    }
+  }
+  return results;
 }
 
 // CSS named colors: name -> [r, g, b] (0-255)
