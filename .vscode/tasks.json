@@ -10,6 +10,48 @@
       },
       "label": "npm: compile",
       "problemMatcher": []
+    },
+    {
+      "label": "Package VSIX",
+      "type": "shell",
+      "command": "npx @vscode/vsce package",
+      "group": "build",
+      "dependsOn": "npm: compile",
+      "problemMatcher": []
+    },
+    {
+      "label": "Install in VSCode",
+      "type": "shell",
+      "command": "code --install-extension css-oklch-$(node -p \"require('./package.json').version\").vsix",
+      "group": "none",
+      "dependsOn": "Package VSIX",
+      "problemMatcher": []
+    },
+    {
+      "label": "Install in Cursor",
+      "type": "shell",
+      "command": "cursor --install-extension css-oklch-$(node -p \"require('./package.json').version\").vsix",
+      "group": "none",
+      "dependsOn": "Package VSIX",
+      "problemMatcher": []
+    },
+    {
+      "label": "Bump Patch Version",
+      "type": "shell",
+      "command": "npm version patch --no-git-tag-version && echo \"Version is now $(node -p \"require('./package.json').version\")\"",
+      "problemMatcher": []
+    },
+    {
+      "label": "Bump Minor Version",
+      "type": "shell",
+      "command": "npm version minor --no-git-tag-version && echo \"Version is now $(node -p \"require('./package.json').version\")\"",
+      "problemMatcher": []
+    },
+    {
+      "label": "Bump Major Version",
+      "type": "shell",
+      "command": "npm version major --no-git-tag-version && echo \"Version is now $(node -p \"require('./package.json').version\")\"",
+      "problemMatcher": []
     }
   ]
 }
