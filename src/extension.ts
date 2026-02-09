@@ -3,6 +3,7 @@ import { OklchColorProvider } from "./colorProvider";
 import { findCssColorAtOffset, findAllCssColors } from "./cssColorParser";
 import { formatOklch } from "./formatOklch";
 import { openPickerPanel } from "./pickerPanel";
+import { openContrastPanel } from "./contrastPanel";
 
 export function activate(context: vscode.ExtensionContext): void {
   const provider = new OklchColorProvider();
@@ -33,6 +34,29 @@ export function activate(context: vscode.ExtensionContext): void {
       }
 
       openPickerPanel(context, initialColor);
+    })
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand("cssOklch.openContrastPanel", () => {
+      const editor = vscode.window.activeTextEditor;
+      let initialColor: { L: number; C: number; H: number; alpha: number } | undefined;
+
+      if (editor) {
+        const text = editor.document.getText();
+        const offset = editor.document.offsetAt(editor.selection.active);
+        const match = findCssColorAtOffset(text, offset);
+        if (match) {
+          initialColor = {
+            L: match.L,
+            C: match.C,
+            H: match.H,
+            alpha: match.alpha,
+          };
+        }
+      }
+
+      openContrastPanel(context, initialColor);
     })
   );
 
