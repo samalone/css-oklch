@@ -2,7 +2,7 @@
   "name": "css-oklch",
   "displayName": "CSS OKLCH Color Preview",
   "description": "Color swatches and picker for oklch() colors in CSS, SCSS, and Less",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "publisher": "samalone",
   "license": "MIT",
   "repository": {
@@ -38,6 +38,10 @@
       {
         "command": "cssOklch.openContrastPanel",
         "title": "OKLCH: Open Contrast Checker"
+      },
+      {
+        "command": "cssOklch.openFormulaPanel",
+        "title": "OKLCH: Open Adaptive Formula"
       }
     ],
     "configuration": {
@@ -92,6 +96,12 @@
         "command": "cssOklch.openContrastPanel",
         "key": "ctrl+alt+shift+o",
         "mac": "alt+cmd+shift+o",
+        "when": "editorTextFocus && editorLangId =~ /css|scss|less/"
+      },
+      {
+        "command": "cssOklch.openFormulaPanel",
+        "key": "ctrl+alt+shift+f",
+        "mac": "alt+cmd+shift+f",
         "when": "editorTextFocus && editorLangId =~ /css|scss|less/"
       }
     ]

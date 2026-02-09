@@ -41,6 +41,18 @@ When your cursor is on any of these color formats, the picker opens with that co
 - Color-coded contrast values (green/orange/red)
 - Apply/Insert derived color, or insert the relative CSS expression
 
+**Adaptive formula panel** — Design relative color formulas that work across a range of base colors:
+
+- Choose which OKLCH component varies (Lightness, Chroma, or Hue) while fixing the other two
+- Set the variable range to sweep
+- Configure a relative color formula with lightness, chroma, and hue transforms
+- **Contrast chart**: canvas visualization showing APCA or WCAG contrast across the entire variable range, with threshold lines and min/max markers
+- **Min/max analysis**: precise contrast extrema found via sampling + golden section refinement
+- **Worst-case assessment**: tells you the guaranteed contrast level across the range
+- Same presets as the contrast checker: Accessible text, Subtle background, Border, Complementary
+- Out-of-gamut regions shown with dimmed/dotted curve segments
+- Insert or copy the `oklch(from var(--base) ...)` formula
+
 **Batch conversion commands** — Convert multiple colors at once:
 
 - **Convert Selection to oklch** — Converts all CSS colors in the selected text to `oklch()` in your preferred format.
@@ -76,6 +88,12 @@ If your cursor is on any CSS color value, the picker opens with that color pre-l
 - Command Palette: "OKLCH: Open Contrast Checker"
 
 If your cursor is on a CSS color value, it becomes the base color. Toggle between Independent and Relative modes to either pick a derived color directly or define it as a formula from the base.
+
+**Open the adaptive formula panel** with:
+- `Alt+Cmd+Shift+F` (Mac) / `Ctrl+Alt+Shift+F` (Windows/Linux)
+- Command Palette: "OKLCH: Open Adaptive Formula"
+
+Choose which OKLCH component varies (L, C, or H), set the range, and configure a formula. The chart shows how contrast changes across the range, and the results tell you the guaranteed minimum contrast level.
 
 **Convert colors** with:
 - Command Palette: "OKLCH: Convert Selection to oklch"
