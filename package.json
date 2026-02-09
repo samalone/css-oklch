@@ -2,7 +2,7 @@
   "name": "css-oklch",
   "displayName": "CSS OKLCH Color Preview",
   "description": "Color swatches and picker for oklch() colors in CSS, SCSS, and Less",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "publisher": "samalone",
   "license": "MIT",
   "repository": {

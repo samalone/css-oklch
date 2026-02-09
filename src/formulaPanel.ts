@@ -207,6 +207,56 @@ function getFormulaWebviewHtml(
       white-space: nowrap;
     }
 
+    /* Hue arc selector */
+    .hue-arc-wrap {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+    .hue-arc-wrap.visible { display: flex; }
+    .hue-arc-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    #hueArcCanvas {
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    .hue-arc-inputs {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .hue-arc-inputs .arc-input-row {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .hue-arc-inputs .arc-input-label {
+      font-size: 10px;
+      font-weight: 600;
+      opacity: 0.6;
+      min-width: 32px;
+    }
+    .hue-arc-inputs input[type="number"] {
+      width: 56px;
+      background: var(--vscode-input-background);
+      color: var(--vscode-input-foreground);
+      border: 1px solid var(--vscode-input-border, #444);
+      border-radius: 2px;
+      padding: 1px 3px;
+      font-family: var(--vscode-editor-font-family, monospace);
+      font-size: 11px;
+    }
+    .hue-arc-span {
+      font-size: 10px;
+      opacity: 0.5;
+      text-align: center;
+    }
+
     /* Sliders */
     .slider-row {
       display: flex;
@@ -522,9 +572,9 @@ function getFormulaWebviewHtml(
   <div class="section">
     <h3>Base Color (Variable Component)</h3>
     <div class="var-selector">
-      <button class="var-btn active" data-var="L">Lightness</button>
+      <button class="var-btn" data-var="L">Lightness</button>
       <button class="var-btn" data-var="C">Chroma</button>
-      <button class="var-btn" data-var="H">Hue</button>
+      <button class="var-btn active" data-var="H">Hue</button>
     </div>
 
     <div id="fixedSliders"></div>
@@ -535,6 +585,25 @@ function getFormulaWebviewHtml(
       <span class="range-sep" id="rangeSep">to</span>
       <input type="number" id="rangeMax" step="0.01" value="1">
       <span class="range-wrap-note" id="rangeWrapNote"></span>
+    </div>
+
+    <div class="hue-arc-wrap" id="hueArcWrap">
+      <div class="hue-arc-row">
+        <canvas id="hueArcCanvas" width="140" height="140"></canvas>
+        <div class="hue-arc-inputs">
+          <div class="arc-input-row">
+            <span class="arc-input-label">Start</span>
+            <input type="number" id="arcStartNum" min="0" max="360" step="1" value="0">
+            <span class="slider-unit">°</span>
+          </div>
+          <div class="arc-input-row">
+            <span class="arc-input-label">End</span>
+            <input type="number" id="arcEndNum" min="0" max="360" step="1" value="360">
+            <span class="slider-unit">°</span>
+          </div>
+          <div class="hue-arc-span" id="arcSpanLabel">360° span</div>
+        </div>
+      </div>
     </div>
 
     <div style="display:flex;align-items:center;gap:8px;margin-top:6px;">
@@ -729,9 +798,9 @@ function getFormulaWebviewHtml(
   }
 
   // --- State ---
-  let variableComponent = 'L';
+  let variableComponent = 'H';
   let fixedL = ${initL}, fixedC = ${initC}, fixedH = ${initH};
-  let varMin = 0, varMax = 1;
+  let varMin = 0, varMax = 360;
 
   // Transform state
   let lightnessEnabled = true, lightnessDir = 'darker', lightnessAmount = 0.4;
@@ -826,32 +895,50 @@ function getFormulaWebviewHtml(
   }
 
   function buildFixedSliders() {
+    // Build all three component rows in L, C, H order.
+    // The variable component gets the range row (or hue arc); fixed components get sliders.
     let html = '';
-    if (variableComponent !== 'L') {
-      html += '<div class="slider-row">'
-        + '<span class="slider-label">L</span>'
-        + '<input type="range" id="fixSliderL" min="0" max="1" step="0.001" value="' + fixedL + '">'
-        + '<input type="number" id="fixNumL" min="0" max="' + (fmtLightness === 'percentage' ? '100' : '1') + '" step="' + (fmtLightness === 'percentage' ? '0.1' : '0.001') + '">'
-        + (fmtLightness === 'percentage' ? '<span class="slider-unit">%</span>' : '')
-        + '</div>';
-    }
-    if (variableComponent !== 'C') {
-      html += '<div class="slider-row">'
-        + '<span class="slider-label">C</span>'
-        + '<input type="range" id="fixSliderC" min="0" max="0.4" step="0.001" value="' + fixedC + '">'
-        + '<input type="number" id="fixNumC" min="0" max="' + (fmtChroma === 'percentage' ? '125' : '0.5') + '" step="' + (fmtChroma === 'percentage' ? '0.1' : '0.001') + '">'
-        + (fmtChroma === 'percentage' ? '<span class="slider-unit">%</span>' : '')
-        + '</div>';
-    }
-    if (variableComponent !== 'H') {
-      html += '<div class="slider-row">'
-        + '<span class="slider-label">H</span>'
-        + '<input type="range" id="fixSliderH" min="0" max="360" step="0.5" value="' + fixedH + '">'
-        + '<input type="number" id="fixNumH" min="0" max="360" step="0.5">'
-        + (fmtHue === 'deg' ? '<span class="slider-unit">deg</span>' : '')
-        + '</div>';
-    }
+    const components = ['L', 'C', 'H'];
+    components.forEach(comp => {
+      if (comp === variableComponent) {
+        // Placeholder div that we'll fill with the range row or hue arc
+        html += '<div id="varSlot"></div>';
+      } else if (comp === 'L') {
+        html += '<div class="slider-row">'
+          + '<span class="slider-label">L</span>'
+          + '<input type="range" id="fixSliderL" min="0" max="1" step="0.001" value="' + fixedL + '">'
+          + '<input type="number" id="fixNumL" min="0" max="' + (fmtLightness === 'percentage' ? '100' : '1') + '" step="' + (fmtLightness === 'percentage' ? '0.1' : '0.001') + '">'
+          + (fmtLightness === 'percentage' ? '<span class="slider-unit">%</span>' : '')
+          + '</div>';
+      } else if (comp === 'C') {
+        html += '<div class="slider-row">'
+          + '<span class="slider-label">C</span>'
+          + '<input type="range" id="fixSliderC" min="0" max="0.4" step="0.001" value="' + fixedC + '">'
+          + '<input type="number" id="fixNumC" min="0" max="' + (fmtChroma === 'percentage' ? '125' : '0.5') + '" step="' + (fmtChroma === 'percentage' ? '0.1' : '0.001') + '">'
+          + (fmtChroma === 'percentage' ? '<span class="slider-unit">%</span>' : '')
+          + '</div>';
+      } else {
+        html += '<div class="slider-row">'
+          + '<span class="slider-label">H</span>'
+          + '<input type="range" id="fixSliderH" min="0" max="360" step="0.5" value="' + fixedH + '">'
+          + '<input type="number" id="fixNumH" min="0" max="360" step="0.5">'
+          + (fmtHue === 'deg' ? '<span class="slider-unit">deg</span>' : '')
+          + '</div>';
+      }
+    });
     fixedSlidersEl.innerHTML = html;
+
+    // Move the range row or hue arc into the variable slot
+    const varSlot = $('varSlot');
+    if (variableComponent === 'H') {
+      varSlot.appendChild(hueArcWrap);
+      hueArcWrap.classList.add('visible');
+      rangeRow.style.display = 'none';
+    } else {
+      varSlot.appendChild(rangeRow);
+      rangeRow.style.display = '';
+      hueArcWrap.classList.remove('visible');
+    }
 
     // Wire up fixed sliders
     if (variableComponent !== 'L') {
@@ -920,6 +1007,11 @@ function getFormulaWebviewHtml(
     } else {
       rangeWrapNote.textContent = '';
     }
+
+    // Sync hue arc inputs
+    if (variableComponent === 'H') {
+      syncArcInputs();
+    }
   }
 
   rangeMinEl.addEventListener('input', () => {
@@ -929,6 +1021,188 @@ function getFormulaWebviewHtml(
   rangeMaxEl.addEventListener('input', () => {
     const v = parseFloat(rangeMaxEl.value);
     if (!isNaN(v)) { varMax = v; fullUpdate(); }
+  });
+
+  // --- Hue arc selector ---
+  const hueArcWrap = $('hueArcWrap');
+  const hueArcCanvas = $('hueArcCanvas');
+  const hueArcCtx = hueArcCanvas.getContext('2d');
+  const arcStartNum = $('arcStartNum');
+  const arcEndNum = $('arcEndNum');
+  const arcSpanLabel = $('arcSpanLabel');
+  const rangeRow = $('rangeRow');
+
+  const ARC_SIZE = 140;
+  const ARC_CX = ARC_SIZE / 2;
+  const ARC_CY = ARC_SIZE / 2;
+  const ARC_OUTER = 62;
+  const ARC_INNER = 42;
+  const ARC_MID = (ARC_OUTER + ARC_INNER) / 2;
+  const ARC_HANDLE_R = 8;
+
+  // Convert hue degrees to canvas angle (0° = top, clockwise)
+  function hueToAngle(h) { return (h - 90) * Math.PI / 180; }
+  function angleToHue(a) { let h = a * 180 / Math.PI + 90; return ((h % 360) + 360) % 360; }
+
+  function drawHueArc() {
+    const w = ARC_SIZE, h = ARC_SIZE;
+    hueArcCtx.clearRect(0, 0, w, h);
+
+    // Draw full hue ring
+    const steps = 360;
+    for (let i = 0; i < steps; i++) {
+      const hue = i;
+      const a1 = hueToAngle(hue) - 0.01;
+      const a2 = hueToAngle(hue + 1.5);
+      const rgb = oklchToSrgb(0.7, 0.15, hue);
+      const r = Math.min(255, Math.max(0, Math.round(clamp01(rgb.r) * 255)));
+      const g = Math.min(255, Math.max(0, Math.round(clamp01(rgb.g) * 255)));
+      const b = Math.min(255, Math.max(0, Math.round(clamp01(rgb.b) * 255)));
+      hueArcCtx.beginPath();
+      hueArcCtx.arc(ARC_CX, ARC_CY, ARC_OUTER, a1, a2);
+      hueArcCtx.arc(ARC_CX, ARC_CY, ARC_INNER, a2, a1, true);
+      hueArcCtx.closePath();
+      hueArcCtx.fillStyle = 'rgb(' + r + ',' + g + ',' + b + ')';
+      hueArcCtx.fill();
+    }
+
+    // Dim the non-selected region with a semi-transparent overlay
+    const startAngle = hueToAngle(varMin);
+    const endAngle = hueToAngle(varMax);
+    // The selected arc goes from varMin to varMax (clockwise, possibly wrapping)
+    // We dim everything OUTSIDE that arc
+    hueArcCtx.globalCompositeOperation = 'source-over';
+    // Draw dim overlay for the non-selected arc
+    hueArcCtx.beginPath();
+    if (varMin === 0 && varMax === 360) {
+      // Full circle selected — no dimming needed
+    } else {
+      // Dim from endAngle back to startAngle (the non-selected arc)
+      hueArcCtx.arc(ARC_CX, ARC_CY, ARC_OUTER + 1, endAngle, startAngle);
+      hueArcCtx.arc(ARC_CX, ARC_CY, ARC_INNER - 1, startAngle, endAngle, true);
+      hueArcCtx.closePath();
+      hueArcCtx.fillStyle = 'rgba(0,0,0,0.55)';
+      hueArcCtx.fill();
+    }
+
+    // Draw handle outlines on the selected arc boundary
+    function drawHandle(hue, label) {
+      const a = hueToAngle(hue);
+      const hx = ARC_CX + ARC_MID * Math.cos(a);
+      const hy = ARC_CY + ARC_MID * Math.sin(a);
+
+      // Handle circle
+      hueArcCtx.beginPath();
+      hueArcCtx.arc(hx, hy, ARC_HANDLE_R, 0, Math.PI * 2);
+      const rgb = oklchToSrgb(0.7, 0.15, hue);
+      const r = Math.round(clamp01(rgb.r) * 255);
+      const g = Math.round(clamp01(rgb.g) * 255);
+      const b = Math.round(clamp01(rgb.b) * 255);
+      hueArcCtx.fillStyle = 'rgb(' + r + ',' + g + ',' + b + ')';
+      hueArcCtx.fill();
+      hueArcCtx.strokeStyle = '#fff';
+      hueArcCtx.lineWidth = 2;
+      hueArcCtx.stroke();
+
+      // Label inside handle
+      hueArcCtx.fillStyle = (r * 0.299 + g * 0.587 + b * 0.114) > 128 ? '#000' : '#fff';
+      hueArcCtx.font = 'bold 8px sans-serif';
+      hueArcCtx.textAlign = 'center';
+      hueArcCtx.textBaseline = 'middle';
+      hueArcCtx.fillText(label, hx, hy);
+    }
+
+    drawHandle(varMin, 'S');
+    drawHandle(varMax, 'E');
+
+    // Draw span arc indicator (inner edge, thin line)
+    hueArcCtx.beginPath();
+    hueArcCtx.arc(ARC_CX, ARC_CY, ARC_INNER - 4, startAngle, endAngle);
+    hueArcCtx.strokeStyle = 'rgba(255,255,255,0.4)';
+    hueArcCtx.lineWidth = 2;
+    hueArcCtx.stroke();
+
+    // Center text: span in degrees
+    const span = effectiveRange();
+    hueArcCtx.fillStyle = getComputedStyle(document.body).color || '#ccc';
+    hueArcCtx.font = '13px sans-serif';
+    hueArcCtx.textAlign = 'center';
+    hueArcCtx.textBaseline = 'middle';
+    hueArcCtx.fillText(Math.round(span) + '°', ARC_CX, ARC_CY);
+  }
+
+  // Hit-test handles
+  function hitTestArcHandle(x, y) {
+    function dist(hue) {
+      const a = hueToAngle(hue);
+      const hx = ARC_CX + ARC_MID * Math.cos(a);
+      const hy = ARC_CY + ARC_MID * Math.sin(a);
+      return Math.sqrt((x - hx) * (x - hx) + (y - hy) * (y - hy));
+    }
+    const ds = dist(varMin);
+    const de = dist(varMax);
+    const threshold = ARC_HANDLE_R + 4;
+    if (ds < threshold && ds <= de) return 'start';
+    if (de < threshold) return 'end';
+    return null;
+  }
+
+  let arcDragging = null; // 'start' | 'end' | null
+
+  hueArcCanvas.addEventListener('pointerdown', (e) => {
+    const rect = hueArcCanvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    const hit = hitTestArcHandle(x, y);
+    if (hit) {
+      arcDragging = hit;
+      hueArcCanvas.setPointerCapture(e.pointerId);
+    }
+  });
+
+  hueArcCanvas.addEventListener('pointermove', (e) => {
+    if (!arcDragging) return;
+    const rect = hueArcCanvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    const angle = Math.atan2(y - ARC_CY, x - ARC_CX);
+    let hue = Math.round(angleToHue(angle));
+    hue = ((hue % 360) + 360) % 360;
+
+    if (arcDragging === 'start') {
+      varMin = hue;
+    } else {
+      varMax = hue;
+    }
+    syncArcInputs();
+    fullUpdate();
+  });
+
+  hueArcCanvas.addEventListener('pointerup', () => { arcDragging = null; });
+  hueArcCanvas.addEventListener('pointercancel', () => { arcDragging = null; });
+
+  // Sync number inputs with arc state
+  function syncArcInputs() {
+    arcStartNum.value = Math.round(varMin);
+    arcEndNum.value = Math.round(varMax);
+    const span = effectiveRange();
+    arcSpanLabel.textContent = Math.round(span) + '° span';
+  }
+
+  // Number inputs update arc
+  arcStartNum.addEventListener('input', () => {
+    const v = parseFloat(arcStartNum.value);
+    if (!isNaN(v) && v >= 0 && v <= 360) {
+      varMin = v;
+      fullUpdate();
+    }
+  });
+  arcEndNum.addEventListener('input', () => {
+    const v = parseFloat(arcEndNum.value);
+    if (!isNaN(v) && v >= 0 && v <= 360) {
+      varMax = v;
+      fullUpdate();
+    }
   });
 
   // --- Transform controls ---
@@ -1451,6 +1725,12 @@ function getFormulaWebviewHtml(
       rangeWrapNote.textContent = '(wraps through 0\\u00B0)';
     } else {
       rangeWrapNote.textContent = '';
+    }
+
+    // Redraw hue arc if active
+    if (variableComponent === 'H') {
+      drawHueArc();
+      syncArcInputs();
     }
 
     // Update midpoint swatch
