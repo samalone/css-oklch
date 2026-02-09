@@ -1,0 +1,56 @@
+{
+  "name": "css-oklch",
+  "displayName": "CSS OKLCH Color Preview",
+  "description": "Color swatches and picker for oklch() colors in CSS, SCSS, and Less",
+  "version": "0.1.0",
+  "publisher": "samalone",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/samalone/css-oklch"
+  },
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onLanguage:css",
+    "onLanguage:less",
+    "onLanguage:scss"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "cssOklch.openColorPicker",
+        "title": "OKLCH: Open Color Picker"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "cssOklch.openColorPicker",
+        "key": "ctrl+alt+o",
+        "mac": "alt+cmd+o",
+        "when": "editorTextFocus && editorLangId =~ /css|scss|less/"
+      }
+    ]
+  },
+  "scripts": {
+    "compile": "npm run check-types && node esbuild.js",
+    "check-types": "tsc --noEmit",
+    "watch": "npm-run-all -p watch:*",
+    "watch:esbuild": "node esbuild.js --watch",
+    "watch:tsc": "tsc --noEmit --watch --preserveWatchOutput",
+    "package": "npm run check-types && node esbuild.js --production",
+    "vscode:prepublish": "npm run package"
+  },
+  "devDependencies": {
+    "@types/node": "^18.19.130",
+    "@types/vscode": "^1.80.0",
+    "esbuild": "^0.24.0",
+    "npm-run-all": "^4.1.5",
+    "typescript": "~5.7.0"
+  }
+}
