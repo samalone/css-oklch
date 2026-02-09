@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 import * as crypto from "crypto";
-import { findOklchAtOffset } from "./oklchParser";
+import { findCssColorAtOffset } from "./cssColorParser";
 
 interface OklchColor {
   L: number;
@@ -50,11 +50,11 @@ export function openPickerPanel(
     }
     const text = lastEditor.document.getText();
     const offset = lastCursorOffset ?? 0;
-    const match = findOklchAtOffset(text, offset);
+    const match = findCssColorAtOffset(text, offset);
     if (match) {
       currentPanel.webview.postMessage({
         command: "cursorContext",
-        hasOklch: true,
+        hasCssColor: true,
         L: match.L,
         C: match.C,
         H: match.H,
@@ -63,7 +63,7 @@ export function openPickerPanel(
     } else {
       currentPanel.webview.postMessage({
         command: "cursorContext",
-        hasOklch: false,
+        hasCssColor: false,
       });
     }
   }
@@ -111,30 +111,18 @@ export function openPickerPanel(
           const doc = editor.document;
           const text = doc.getText();
           const offset = lastCursorOffset ?? doc.offsetAt(editor.selection.active);
-          // Find oklch() at or near cursor
-          const regex = /oklch\(\s*[^)]*\s*\)/gi;
-          let match: RegExpExecArray | null;
-          let bestMatch: { start: number; end: number } | null = null;
-          regex.lastIndex = 0;
-          while ((match = regex.exec(text)) !== null) {
-            const start = match.index;
-            const end = start + match[0].length;
-            if (offset >= start && offset <= end) {
-              bestMatch = { start, end };
-              break;
-            }
-          }
-          if (bestMatch) {
+          const colorMatch = findCssColorAtOffset(text, offset);
+          if (colorMatch) {
             const range = new vscode.Range(
-              doc.positionAt(bestMatch.start),
-              doc.positionAt(bestMatch.end)
+              doc.positionAt(colorMatch.startOffset),
+              doc.positionAt(colorMatch.endOffset)
             );
             editor.edit((editBuilder) => {
               editBuilder.replace(range, oklchStr);
             });
           } else {
             vscode.window.showWarningMessage(
-              "No oklch() value found at cursor position. Use 'Insert' instead."
+              "No CSS color value found at cursor position. Use 'Insert' instead."
             );
           }
           break;
@@ -690,8 +678,8 @@ function getWebviewHtml(nonce: string, initialColor?: OklchColor): string {
         curL = msg.L; curC = msg.C; curH = msg.H; curA = msg.alpha;
         syncFromState();
       } else if (msg.command === 'cursorContext') {
-        btnApply.disabled = !msg.hasOklch;
-        if (msg.hasOklch) {
+        btnApply.disabled = !msg.hasCssColor;
+        if (msg.hasCssColor) {
           curL = msg.L; curC = msg.C; curH = msg.H; curA = msg.alpha;
           syncFromState();
         }

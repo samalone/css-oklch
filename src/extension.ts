@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 import { OklchColorProvider } from "./colorProvider";
-import { findOklchAtOffset } from "./oklchParser";
+import { findCssColorAtOffset } from "./cssColorParser";
 import { openPickerPanel } from "./pickerPanel";
 
 export function activate(context: vscode.ExtensionContext): void {
@@ -20,7 +20,7 @@ export function activate(context: vscode.ExtensionContext): void {
       if (editor) {
         const text = editor.document.getText();
         const offset = editor.document.offsetAt(editor.selection.active);
-        const match = findOklchAtOffset(text, offset);
+        const match = findCssColorAtOffset(text, offset);
         if (match) {
           initialColor = {
             L: match.L,

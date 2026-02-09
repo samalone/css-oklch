@@ -116,3 +116,44 @@ function srgbToLinear(x: number): number {
   }
   return Math.pow((x + 0.055) / 1.055, 2.4);
 }
+
+export function hslToSrgb(
+  h: number,
+  s: number,
+  l: number
+): { r: number; g: number; b: number } {
+  h = ((h % 360) + 360) % 360;
+  const c = (1 - Math.abs(2 * l - 1)) * s;
+  const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
+  const m = l - c / 2;
+  let r = 0,
+    g = 0,
+    b = 0;
+  if (h < 60) {
+    r = c; g = x;
+  } else if (h < 120) {
+    r = x; g = c;
+  } else if (h < 180) {
+    g = c; b = x;
+  } else if (h < 240) {
+    g = x; b = c;
+  } else if (h < 300) {
+    r = x; b = c;
+  } else {
+    r = c; b = x;
+  }
+  return { r: r + m, g: g + m, b: b + m };
+}
+
+export function oklabToOklch(
+  L: number,
+  a: number,
+  b: number
+): { L: number; C: number; H: number } {
+  const C = Math.sqrt(a * a + b * b);
+  let H = (Math.atan2(b, a) * 180) / Math.PI;
+  if (H < 0) {
+    H += 360;
+  }
+  return { L, C, H };
+}
