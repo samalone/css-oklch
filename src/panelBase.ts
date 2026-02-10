@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 import * as crypto from "crypto";
-import { findCssColorAtOffset } from "./cssColorParser";
+import { findCssColorAtOffset, findPropertyContext } from "./cssColorParser";
 import { formatOklch } from "./formatOklch";
 
 export interface OklchColor {
@@ -8,6 +8,7 @@ export interface OklchColor {
   C: number;
   H: number;
   alpha: number;
+  propertyName?: string;
 }
 
 export interface PanelConfig {
@@ -85,6 +86,7 @@ export function createPanel(
     const match = findCssColorAtOffset(text, offset);
     if (config.cursorContextMode === "full") {
       if (match) {
+        const propertyName = findPropertyContext(text, match.startOffset);
         state.currentPanel.webview.postMessage({
           command: "cursorContext",
           hasCssColor: true,
@@ -92,6 +94,7 @@ export function createPanel(
           C: match.C,
           H: match.H,
           alpha: match.alpha,
+          propertyName,
         });
       } else {
         state.currentPanel.webview.postMessage({

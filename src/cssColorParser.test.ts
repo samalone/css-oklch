@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   findCssColorAtOffset,
   findAllCssColors,
+  findPropertyContext,
 } from "./cssColorParser";
 
 describe("findCssColorAtOffset", () => {
@@ -267,5 +268,48 @@ describe("findAllCssColors", () => {
     const results = findAllCssColors(text);
     const namedResults = results.filter((r) => r.originalFormat === "named");
     expect(namedResults).toHaveLength(0);
+  });
+});
+
+describe("findPropertyContext", () => {
+  it("detects custom property name", () => {
+    const text = "--brand-primary: oklch(0.7 0.15 180);";
+    // offset of 'o' in oklch
+    expect(findPropertyContext(text, 17)).toBe("--brand-primary");
+  });
+
+  it("detects standard property name", () => {
+    const text = "color: oklch(0.7 0.15 180);";
+    expect(findPropertyContext(text, 7)).toBe("color");
+  });
+
+  it("detects property with multi-value context", () => {
+    const text = "border: 1px solid oklch(0.7 0.15 180);";
+    expect(findPropertyContext(text, 18)).toBe("border");
+  });
+
+  it("detects property when color is inside a function", () => {
+    const text = "--bg: linear-gradient(oklch(0.7 0.15 180), white);";
+    expect(findPropertyContext(text, 22)).toBe("--bg");
+  });
+
+  it("does not cross semicolon boundary", () => {
+    const text = "color: red; --text: oklch(0.7 0.15 180);";
+    expect(findPropertyContext(text, 20)).toBe("--text");
+  });
+
+  it("does not cross opening brace boundary", () => {
+    const text = ".foo { --text: oklch(0.7 0.15 180);";
+    expect(findPropertyContext(text, 15)).toBe("--text");
+  });
+
+  it("returns null when no property context", () => {
+    const text = "oklch(0.7 0.15 180)";
+    expect(findPropertyContext(text, 0)).toBeNull();
+  });
+
+  it("handles extra whitespace around colon", () => {
+    const text = "--brand  :  oklch(0.7 0.15 180);";
+    expect(findPropertyContext(text, 12)).toBe("--brand");
   });
 });

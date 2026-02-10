@@ -50,6 +50,9 @@ function getFormulaWebviewHtml(
   const initL = initialColor?.L ?? 0.55;
   const initC = initialColor?.C ?? 0.15;
   const initH = initialColor?.H ?? 240;
+  const initialPropertyName = initialColor?.propertyName
+    ? JSON.stringify(initialColor.propertyName)
+    : "null";
   const fmtOpts = getFormatOptions();
 
   return `<!DOCTYPE html>
@@ -444,6 +447,7 @@ function getFormulaWebviewHtml(
   // --- State ---
   let variableComponent = 'H';
   let fixedL = ${initL}, fixedC = ${initC}, fixedH = ${initH};
+  let basePropertyName = ${initialPropertyName};
   let varMin = 0, varMax = 360;
 
   // Transform state
@@ -1122,7 +1126,10 @@ function getFormulaWebviewHtml(
       const sign = hueShift > 0 ? '+' : '-';
       hExpr = 'calc(h ' + sign + ' ' + Math.abs(hueShift) + 'deg)';
     }
-    return 'oklch(from var(--base) ' + lExpr + ' ' + cExpr + ' ' + hExpr + ')';
+    const baseRef = basePropertyName && basePropertyName.startsWith('--')
+      ? 'var(' + basePropertyName + ')'
+      : 'var(--base)';
+    return 'oklch(from ' + baseRef + ' ' + lExpr + ' ' + cExpr + ' ' + hExpr + ')';
   }
 
   // --- Chart rendering ---
@@ -1439,6 +1446,7 @@ function getFormulaWebviewHtml(
     const msg = e.data;
     if (msg.command === 'setInitialColor') {
       fixedL = msg.L; fixedC = msg.C; fixedH = msg.H;
+      basePropertyName = msg.propertyName || null;
       buildFixedSliders();
       fullUpdate();
     } else if (msg.command === 'cursorContext') {

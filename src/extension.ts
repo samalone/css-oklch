@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 import { OklchColorProvider } from "./colorProvider";
-import { findCssColorAtOffset, findAllCssColors } from "./cssColorParser";
+import { findCssColorAtOffset, findAllCssColors, findPropertyContext } from "./cssColorParser";
 import { formatOklch } from "./formatOklch";
 import { openPickerPanel } from "./pickerPanel";
 import { openContrastPanel } from "./contrastPanel";
@@ -18,18 +18,20 @@ export function activate(context: vscode.ExtensionContext): void {
   context.subscriptions.push(
     vscode.commands.registerCommand("cssOklch.openColorPicker", () => {
       const editor = vscode.window.activeTextEditor;
-      let initialColor: { L: number; C: number; H: number; alpha: number } | undefined;
+      let initialColor: { L: number; C: number; H: number; alpha: number; propertyName?: string } | undefined;
 
       if (editor) {
         const text = editor.document.getText();
         const offset = editor.document.offsetAt(editor.selection.active);
         const match = findCssColorAtOffset(text, offset);
         if (match) {
+          const propertyName = findPropertyContext(text, match.startOffset);
           initialColor = {
             L: match.L,
             C: match.C,
             H: match.H,
             alpha: match.alpha,
+            propertyName: propertyName ?? undefined,
           };
         }
       }
@@ -41,18 +43,20 @@ export function activate(context: vscode.ExtensionContext): void {
   context.subscriptions.push(
     vscode.commands.registerCommand("cssOklch.openContrastPanel", () => {
       const editor = vscode.window.activeTextEditor;
-      let initialColor: { L: number; C: number; H: number; alpha: number } | undefined;
+      let initialColor: { L: number; C: number; H: number; alpha: number; propertyName?: string } | undefined;
 
       if (editor) {
         const text = editor.document.getText();
         const offset = editor.document.offsetAt(editor.selection.active);
         const match = findCssColorAtOffset(text, offset);
         if (match) {
+          const propertyName = findPropertyContext(text, match.startOffset);
           initialColor = {
             L: match.L,
             C: match.C,
             H: match.H,
             alpha: match.alpha,
+            propertyName: propertyName ?? undefined,
           };
         }
       }
@@ -64,18 +68,20 @@ export function activate(context: vscode.ExtensionContext): void {
   context.subscriptions.push(
     vscode.commands.registerCommand("cssOklch.openFormulaPanel", () => {
       const editor = vscode.window.activeTextEditor;
-      let initialColor: { L: number; C: number; H: number; alpha: number } | undefined;
+      let initialColor: { L: number; C: number; H: number; alpha: number; propertyName?: string } | undefined;
 
       if (editor) {
         const text = editor.document.getText();
         const offset = editor.document.offsetAt(editor.selection.active);
         const match = findCssColorAtOffset(text, offset);
         if (match) {
+          const propertyName = findPropertyContext(text, match.startOffset);
           initialColor = {
             L: match.L,
             C: match.C,
             H: match.H,
             alpha: match.alpha,
+            propertyName: propertyName ?? undefined,
           };
         }
       }

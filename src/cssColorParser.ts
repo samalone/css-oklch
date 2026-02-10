@@ -534,6 +534,21 @@ function findAllNamedColors(text: string): CssColorMatch[] {
   return results;
 }
 
+/**
+ * Scan backwards from a color's startOffset to find the CSS property name
+ * in whose declaration the color appears. Returns the property name
+ * (e.g. "--brand-primary" or "color") or null if not found.
+ */
+export function findPropertyContext(
+  text: string,
+  colorStartOffset: number
+): string | null {
+  const searchStart = Math.max(0, colorStartOffset - 200);
+  const textBefore = text.substring(searchStart, colorStartOffset);
+  const m = textBefore.match(/([\w-]+)\s*:\s*[^;{}]*$/);
+  return m ? m[1] : null;
+}
+
 // CSS named colors: name -> [r, g, b] (0-255)
 const NAMED_COLORS: Record<string, [number, number, number]> = {
   aliceblue: [240, 248, 255],

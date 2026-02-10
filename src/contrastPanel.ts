@@ -67,6 +67,9 @@ function getContrastWebviewHtml(
   const baseC = initialBaseColor?.C ?? 0.01;
   const baseH = initialBaseColor?.H ?? 240;
   const baseA = initialBaseColor?.alpha ?? 1;
+  const initialPropertyName = initialBaseColor?.propertyName
+    ? JSON.stringify(initialBaseColor.propertyName)
+    : "null";
   const fmtOpts = getFormatOptions();
 
   return `<!DOCTYPE html>
@@ -453,6 +456,7 @@ function getContrastWebviewHtml(
 
   // --- State ---
   let baseL = ${baseL}, baseC = ${baseC}, baseH = ${baseH}, baseA = ${baseA};
+  let basePropertyName = ${initialPropertyName};
   let derivedL = 0.2, derivedC = 0.02, derivedH = ${baseH}, derivedA = 1;
 
   // Per-component mode: modeL='fixed'|'lighter'|'darker'; modeC,modeH='fixed'|'relative'
@@ -785,7 +789,10 @@ function getContrastWebviewHtml(
         : '' + parseFloat(indH.toFixed(2));
     }
 
-    let expr = 'oklch(from var(--base) ' + lExpr + ' ' + cExpr + ' ' + hExpr;
+    const baseRef = basePropertyName && basePropertyName.startsWith('--')
+      ? 'var(' + basePropertyName + ')'
+      : 'var(--base)';
+    let expr = 'oklch(from ' + baseRef + ' ' + lExpr + ' ' + cExpr + ' ' + hExpr;
     if (indA < 1) {
       const aStr = fmtAlpha === 'percentage'
         ? parseFloat((indA * 100).toFixed(0)) + '%'
@@ -912,11 +919,13 @@ function getContrastWebviewHtml(
     const msg = e.data;
     if (msg.command === 'setBaseColor') {
       baseL = msg.L; baseC = msg.C; baseH = msg.H; baseA = msg.alpha;
+      basePropertyName = msg.propertyName || null;
       fullUpdate();
     } else if (msg.command === 'cursorContext') {
       btnApply.disabled = !msg.hasCssColor;
       if (msg.hasCssColor) {
         baseL = msg.L; baseC = msg.C; baseH = msg.H; baseA = msg.alpha;
+        basePropertyName = msg.propertyName || null;
         fullUpdate();
       }
     }
