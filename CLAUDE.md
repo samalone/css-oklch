@@ -8,9 +8,18 @@ VSCode/Cursor extension that provides OKLCH color swatches, a custom OKLCH color
 npm run compile        # Type-check + bundle
 npm run watch          # Watch mode (type-check + esbuild)
 npm run package        # Production build
+npm test               # Run unit and integration tests
 ```
 
 Press F5 in VSCode/Cursor to launch the Extension Development Host for testing.
+
+## Workflow
+
+Before committing changes, always run the tests and type-check:
+
+```bash
+npm test && npm run compile
+```
 
 ## Architecture
 
