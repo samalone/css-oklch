@@ -192,38 +192,61 @@ function getContrastWebviewHtml(
       display: none;
     }
 
-    /* Mode toggle */
-    .mode-toggle {
-      display: flex;
-      gap: 0;
-      margin-bottom: 10px;
+    /* Per-component derived grid */
+    .derived-grid {
+      display: grid;
+      grid-template-columns: auto auto 1fr;
+      gap: 6px 6px;
+      align-items: center;
+      margin-bottom: 4px;
+    }
+    .comp-mode-select {
+      background: var(--vscode-input-background);
+      color: var(--vscode-input-foreground);
       border: 1px solid var(--vscode-input-border, #444);
-      border-radius: 3px;
-      overflow: hidden;
+      border-radius: 2px;
+      padding: 1px 3px;
+      font-size: 11px;
+      width: 68px;
     }
-    .mode-btn {
+    .comp-mode-spacer {
+      display: inline-block;
+      width: 68px;
+    }
+    .comp-controls {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      min-width: 0;
+    }
+    .fixed-ctrl, .rel-ctrl {
+      display: flex;
+      align-items: center;
+      gap: 6px;
       flex: 1;
-      padding: 4px 8px;
-      border: none;
-      background: transparent;
-      color: var(--vscode-editor-foreground);
-      cursor: pointer;
-      font-size: 12px;
-      transition: background 0.1s;
+      min-width: 0;
     }
-    .mode-btn:hover {
-      background: var(--vscode-toolbar-hoverBackground, rgba(90, 93, 94, 0.31));
+    .rel-ctrl { display: none; }
+    .fixed-ctrl input[type="range"],
+    .rel-ctrl input[type="range"] {
+      flex: 1;
+      min-width: 0;
     }
-    .mode-btn.active {
-      background: var(--vscode-button-background);
-      color: var(--vscode-button-foreground);
+    .fixed-ctrl input[type="number"],
+    .rel-ctrl input[type="number"] {
+      width: 62px;
+      background: var(--vscode-input-background);
+      color: var(--vscode-input-foreground);
+      border: 1px solid var(--vscode-input-border, #444);
+      border-radius: 2px;
+      padding: 1px 3px;
+      font-family: var(--vscode-editor-font-family, monospace);
+      font-size: 11px;
     }
-
-    /* Relative mode controls */
-    .relative-controls { display: none; }
-    .relative-controls.visible { display: block; }
-    .independent-controls { display: none; }
-    .independent-controls.visible { display: block; }
+    .slider-unit {
+      font-size: 11px;
+      opacity: 0.6;
+    }
 
     ${CSS_TRANSFORM_CONTROLS}
 
@@ -313,85 +336,100 @@ function getContrastWebviewHtml(
       </div>
     </div>
 
-    <div class="mode-toggle">
-      <button class="mode-btn active" id="modeIndependent">Independent</button>
-      <button class="mode-btn" id="modeRelative">Relative</button>
+    <!-- Presets -->
+    <div class="presets">
+      <button class="preset-btn" data-preset="accessible-text">Accessible text</button>
+      <button class="preset-btn" data-preset="subtle-bg">Subtle background</button>
+      <button class="preset-btn" data-preset="border">Border</button>
+      <button class="preset-btn" data-preset="complementary">Complementary</button>
     </div>
 
-    <!-- Independent mode sliders -->
-    <div class="independent-controls visible" id="independentControls">
-      <div class="slider-group sliders-grid">
-        <span class="slider-label">L</span>
-        <input type="range" id="derivedSliderL" min="0" max="1" step="0.001">
-        <input type="number" id="derivedNumL" min="0" max="${fmtOpts.lightnessFormat === "percentage" ? "100" : "1"}" step="${fmtOpts.lightnessFormat === "percentage" ? "0.1" : "0.001"}">
-        <span class="slider-unit">${fmtOpts.lightnessFormat === "percentage" ? "%" : ""}</span>
-
-        <span class="slider-label">C</span>
-        <input type="range" id="derivedSliderC" min="0" max="0.4" step="0.001">
-        <input type="number" id="derivedNumC" min="0" max="${fmtOpts.chromaFormat === "percentage" ? "125" : "0.5"}" step="${fmtOpts.chromaFormat === "percentage" ? "0.1" : "0.001"}">
-        <span class="slider-unit">${fmtOpts.chromaFormat === "percentage" ? "%" : ""}</span>
-
-        <span class="slider-label">H</span>
-        <input type="range" id="derivedSliderH" min="0" max="360" step="0.5">
-        <input type="number" id="derivedNumH" min="0" max="360" step="0.5">
-        <span class="slider-unit">${fmtOpts.hueFormat === "deg" ? "deg" : ""}</span>
-
-        <span class="slider-label">A</span>
-        <input type="range" id="derivedSliderA" min="0" max="1" step="0.01">
-        <input type="number" id="derivedNumA" min="0" max="${fmtOpts.alphaFormat === "percentage" ? "100" : "1"}" step="${fmtOpts.alphaFormat === "percentage" ? "1" : "0.01"}">
-        <span class="slider-unit">${fmtOpts.alphaFormat === "percentage" ? "%" : ""}</span>
-      </div>
+    <div class="target-lc-row" id="targetLcRow">
+      <label>Target APCA Lc:</label>
+      <select id="targetLcSelect">
+        <option value="90">Lc 90 — Preferred body</option>
+        <option value="75" selected>Lc 75 — Body 18px+</option>
+        <option value="60">Lc 60 — Content / bold</option>
+        <option value="45">Lc 45 — Headlines</option>
+        <option value="30">Lc 30 — Spot text</option>
+      </select>
     </div>
 
-    <!-- Relative mode controls -->
-    <div class="relative-controls" id="relativeControls">
-      <div class="presets">
-        <button class="preset-btn" data-preset="accessible-text">Accessible text</button>
-        <button class="preset-btn" data-preset="subtle-bg">Subtle background</button>
-        <button class="preset-btn" data-preset="border">Border</button>
-        <button class="preset-btn" data-preset="complementary">Complementary</button>
-      </div>
-
-      <div class="target-lc-row" id="targetLcRow">
-        <label>Target APCA Lc:</label>
-        <select id="targetLcSelect">
-          <option value="90">Lc 90 — Preferred body</option>
-          <option value="75" selected>Lc 75 — Body 18px+</option>
-          <option value="60">Lc 60 — Content / bold</option>
-          <option value="45">Lc 45 — Headlines</option>
-          <option value="30">Lc 30 — Spot text</option>
-        </select>
-      </div>
-
-      <div class="transform-row">
-        <input type="checkbox" id="chkLightness" checked>
-        <label for="chkLightness">Lightness</label>
-        <select id="lightnessDir">
-          <option value="lighter">Lighter</option>
-          <option value="darker">Darker</option>
-        </select>
-        <input type="range" id="lightnessAmount" min="0" max="0.8" step="0.01" value="0.4">
-        <input type="number" id="lightnessNum" min="0" max="0.8" step="0.01" value="0.4">
-      </div>
-      <div class="transform-row">
-        <input type="checkbox" id="chkChroma" checked>
-        <label for="chkChroma">Chroma</label>
-        <input type="range" id="chromaScale" min="0" max="2" step="0.01" value="1">
-        <input type="number" id="chromaNum" min="0" max="2" step="0.01" value="1">
-      </div>
-      <div class="transform-row">
-        <input type="checkbox" id="chkHue">
-        <label for="chkHue">Hue shift</label>
-        <input type="range" id="hueShift" min="-180" max="180" step="1" value="0">
-        <input type="number" id="hueNum" min="-180" max="180" step="1" value="0">
-      </div>
-
-      <div class="css-expression visible" id="cssExpression">
-        <div class="css-expr-label">CSS relative color:</div>
-        <div class="css-expr-code">
-          <span class="css-expr-text" id="cssExprText"></span>
-          <button class="copy-btn" id="copyCssExpr" title="Copy CSS expression"><svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><path d="M4 4h1V2a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1h-2v2a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h1zm1 0h4a1 1 0 0 1 1 1v5h1V2H6v2zm-2 1v8h6V5H3z"/></svg><span class="copied-msg" id="copiedCssExpr">Copied!</span></button>
+    <!-- Per-component derived controls -->
+    <div class="derived-grid">
+      <!-- L row -->
+      <select class="comp-mode-select" id="modeL">
+        <option value="fixed">Fixed</option>
+        <option value="lighter">Lighter</option>
+        <option value="darker">Darker</option>
+      </select>
+      <span class="slider-label">L</span>
+      <div class="comp-controls">
+        <div class="fixed-ctrl" id="fixedL">
+          <input type="range" id="derivedSliderL" min="0" max="1" step="0.001">
+          <input type="number" id="derivedNumL" min="0" max="${fmtOpts.lightnessFormat === "percentage" ? "100" : "1"}" step="${fmtOpts.lightnessFormat === "percentage" ? "0.1" : "0.001"}">
+          <span class="slider-unit">${fmtOpts.lightnessFormat === "percentage" ? "%" : ""}</span>
         </div>
+        <div class="rel-ctrl" id="relL">
+          <input type="range" id="lightnessAmount" min="0" max="0.8" step="0.01" value="0.4">
+          <input type="number" id="lightnessNum" min="0" max="0.8" step="0.01" value="0.4">
+        </div>
+      </div>
+
+      <!-- C row -->
+      <select class="comp-mode-select" id="modeC">
+        <option value="fixed">Fixed</option>
+        <option value="relative">Relative</option>
+      </select>
+      <span class="slider-label">C</span>
+      <div class="comp-controls">
+        <div class="fixed-ctrl" id="fixedC">
+          <input type="range" id="derivedSliderC" min="0" max="0.4" step="0.001">
+          <input type="number" id="derivedNumC" min="0" max="${fmtOpts.chromaFormat === "percentage" ? "125" : "0.5"}" step="${fmtOpts.chromaFormat === "percentage" ? "0.1" : "0.001"}">
+          <span class="slider-unit">${fmtOpts.chromaFormat === "percentage" ? "%" : ""}</span>
+        </div>
+        <div class="rel-ctrl" id="relC">
+          <input type="range" id="chromaScale" min="0" max="2" step="0.01" value="1">
+          <input type="number" id="chromaNum" min="0" max="2" step="0.01" value="1">
+        </div>
+      </div>
+
+      <!-- H row -->
+      <select class="comp-mode-select" id="modeH">
+        <option value="fixed">Fixed</option>
+        <option value="relative">Relative</option>
+      </select>
+      <span class="slider-label">H</span>
+      <div class="comp-controls">
+        <div class="fixed-ctrl" id="fixedH">
+          <input type="range" id="derivedSliderH" min="0" max="360" step="0.5">
+          <input type="number" id="derivedNumH" min="0" max="360" step="0.5">
+          <span class="slider-unit">${fmtOpts.hueFormat === "deg" ? "deg" : ""}</span>
+        </div>
+        <div class="rel-ctrl" id="relH">
+          <input type="range" id="hueShift" min="-180" max="180" step="1" value="0">
+          <input type="number" id="hueNum" min="-180" max="180" step="1" value="0">
+        </div>
+      </div>
+
+      <!-- A row (always fixed) -->
+      <span class="comp-mode-spacer"></span>
+      <span class="slider-label">A</span>
+      <div class="comp-controls">
+        <div class="fixed-ctrl">
+          <input type="range" id="derivedSliderA" min="0" max="1" step="0.01">
+          <input type="number" id="derivedNumA" min="0" max="${fmtOpts.alphaFormat === "percentage" ? "100" : "1"}" step="${fmtOpts.alphaFormat === "percentage" ? "1" : "0.01"}">
+          <span class="slider-unit">${fmtOpts.alphaFormat === "percentage" ? "%" : ""}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- CSS expression (shown when any component is relative) -->
+    <div class="css-expression" id="cssExpression">
+      <div class="css-expr-label">CSS relative color:</div>
+      <div class="css-expr-code">
+        <span class="css-expr-text" id="cssExprText"></span>
+        <button class="copy-btn" id="copyCssExpr" title="Copy CSS expression"><svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><path d="M4 4h1V2a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1h-2v2a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h1zm1 0h4a1 1 0 0 1 1 1v5h1V2H6v2zm-2 1v8h6V5H3z"/></svg><span class="copied-msg" id="copiedCssExpr">Copied!</span></button>
       </div>
     </div>
   </div>
@@ -401,7 +439,7 @@ function getContrastWebviewHtml(
     <div class="buttons">
       <button class="action" id="btnApply">Apply Derived</button>
       <button class="action secondary" id="btnInsert">Insert Derived</button>
-      <button class="action secondary" id="btnInsertRelative" style="display:none">Insert Relative</button>
+      <button class="action secondary" id="btnInsertRelative">Insert Relative</button>
     </div>
   </div>
 
@@ -416,17 +454,21 @@ function getContrastWebviewHtml(
   // --- State ---
   let baseL = ${baseL}, baseC = ${baseC}, baseH = ${baseH}, baseA = ${baseA};
   let derivedL = 0.2, derivedC = 0.02, derivedH = ${baseH}, derivedA = 1;
-  let mode = 'independent'; // 'independent' | 'relative'
 
-  // Independent state
+  // Per-component mode: modeL='fixed'|'lighter'|'darker'; modeC,modeH='fixed'|'relative'
+  let modeL = 'fixed', modeC = 'fixed', modeH = 'fixed';
+
+  // Fixed (absolute) values
   let indL = 0.2, indC = 0.02, indH = ${baseH}, indA = 1;
 
-  // Relative transforms
-  let lightnessEnabled = true, lightnessDir = 'darker', lightnessAmount = 0.4;
-  let chromaEnabled = true, chromaScale = 1;
-  let hueEnabled = false, hueShift = 0;
+  // Relative transform parameters
+  let lightnessAmount = 0.4;
+  let chromaScale = 1;
+  let hueShift = 0;
   let activePreset = null;
   let targetLc = 75;
+
+  function anyRelative() { return modeL !== 'fixed' || modeC === 'relative' || modeH === 'relative'; }
 
   // --- DOM refs ---
   const $ = id => document.getElementById(id);
@@ -439,7 +481,7 @@ function getContrastWebviewHtml(
   const baseSwatch = $('baseSwatch');
   const baseOklchText = $('baseOklchText'), baseHexText = $('baseHexText');
 
-  // Derived sliders (independent mode)
+  // Derived sliders (fixed mode)
   const derivedSliderL = $('derivedSliderL'), derivedNumL = $('derivedNumL');
   const derivedSliderC = $('derivedSliderC'), derivedNumC = $('derivedNumC');
   const derivedSliderH = $('derivedSliderH'), derivedNumH = $('derivedNumH');
@@ -454,15 +496,16 @@ function getContrastWebviewHtml(
   const previewBaseOnDerived = $('previewBaseOnDerived');
   const alphaNote = $('alphaNote');
 
-  // Mode toggle
-  const modeIndependent = $('modeIndependent'), modeRelative = $('modeRelative');
-  const independentControls = $('independentControls'), relativeControls = $('relativeControls');
+  // Per-component mode selects and control containers
+  const modeLEl = $('modeL'), modeCEl = $('modeC'), modeHEl = $('modeH');
+  const fixedLEl = $('fixedL'), relLEl = $('relL');
+  const fixedCEl = $('fixedC'), relCEl = $('relC');
+  const fixedHEl = $('fixedH'), relHEl = $('relH');
 
   // Relative controls
-  const chkLightness = $('chkLightness'), lightnessDirEl = $('lightnessDir');
   const lightnessAmountEl = $('lightnessAmount'), lightnessNumEl = $('lightnessNum');
-  const chkChroma = $('chkChroma'), chromaScaleEl = $('chromaScale'), chromaNumEl = $('chromaNum');
-  const chkHue = $('chkHue'), hueShiftEl = $('hueShift'), hueNumEl = $('hueNum');
+  const chromaScaleEl = $('chromaScale'), chromaNumEl = $('chromaNum');
+  const hueShiftEl = $('hueShift'), hueNumEl = $('hueNum');
   const targetLcRow = $('targetLcRow'), targetLcSelect = $('targetLcSelect');
   const cssExprText = $('cssExprText');
   const cssExpression = $('cssExpression');
@@ -499,41 +542,58 @@ function getContrastWebviewHtml(
   wireSlider(derivedSliderH, derivedNumH, () => v => { indH = v; }, null);
   wireSlider(derivedSliderA, derivedNumA, () => v => { indA = v; }, aNumToInternal);
 
-  // --- Relative mode controls ---
-  chkLightness.addEventListener('change', () => { lightnessEnabled = chkLightness.checked; activePreset = null; clearPresetBtns(); fullUpdate(); });
-  lightnessDirEl.addEventListener('change', () => { lightnessDir = lightnessDirEl.value; activePreset = null; clearPresetBtns(); fullUpdate(); });
+  // --- Per-component mode toggling ---
+  function updateComponentVisibility(comp) {
+    if (comp === 'L') {
+      const isRel = modeL !== 'fixed';
+      fixedLEl.style.display = isRel ? 'none' : '';
+      relLEl.style.display = isRel ? 'flex' : '';
+    } else if (comp === 'C') {
+      const isRel = modeC === 'relative';
+      fixedCEl.style.display = isRel ? 'none' : '';
+      relCEl.style.display = isRel ? 'flex' : '';
+    } else if (comp === 'H') {
+      const isRel = modeH === 'relative';
+      fixedHEl.style.display = isRel ? 'none' : '';
+      relHEl.style.display = isRel ? 'flex' : '';
+    }
+    const hasRel = anyRelative();
+    btnInsertRelative.style.display = hasRel ? '' : 'none';
+  }
+
+  modeLEl.addEventListener('change', () => {
+    if (modeLEl.value === 'fixed' && modeL !== 'fixed') { indL = derivedL; }
+    modeL = modeLEl.value;
+    activePreset = null; clearPresetBtns();
+    updateComponentVisibility('L');
+    fullUpdate();
+  });
+  modeCEl.addEventListener('change', () => {
+    if (modeCEl.value === 'fixed' && modeC === 'relative') { indC = derivedC; }
+    modeC = modeCEl.value;
+    activePreset = null; clearPresetBtns();
+    updateComponentVisibility('C');
+    fullUpdate();
+  });
+  modeHEl.addEventListener('change', () => {
+    if (modeHEl.value === 'fixed' && modeH === 'relative') { indH = derivedH; }
+    modeH = modeHEl.value;
+    activePreset = null; clearPresetBtns();
+    updateComponentVisibility('H');
+    fullUpdate();
+  });
+
+  // --- Relative transform controls ---
   lightnessAmountEl.addEventListener('input', () => { lightnessAmount = parseFloat(lightnessAmountEl.value); lightnessNumEl.value = lightnessAmount; activePreset = null; clearPresetBtns(); fullUpdate(); });
   lightnessNumEl.addEventListener('input', () => { const v = parseFloat(lightnessNumEl.value); if (!isNaN(v)) { lightnessAmount = v; lightnessAmountEl.value = v; activePreset = null; clearPresetBtns(); fullUpdate(); } });
 
-  chkChroma.addEventListener('change', () => { chromaEnabled = chkChroma.checked; activePreset = null; clearPresetBtns(); fullUpdate(); });
   chromaScaleEl.addEventListener('input', () => { chromaScale = parseFloat(chromaScaleEl.value); chromaNumEl.value = chromaScale; activePreset = null; clearPresetBtns(); fullUpdate(); });
   chromaNumEl.addEventListener('input', () => { const v = parseFloat(chromaNumEl.value); if (!isNaN(v)) { chromaScale = v; chromaScaleEl.value = v; activePreset = null; clearPresetBtns(); fullUpdate(); } });
 
-  chkHue.addEventListener('change', () => { hueEnabled = chkHue.checked; activePreset = null; clearPresetBtns(); fullUpdate(); });
   hueShiftEl.addEventListener('input', () => { hueShift = parseFloat(hueShiftEl.value); hueNumEl.value = hueShift; activePreset = null; clearPresetBtns(); fullUpdate(); });
   hueNumEl.addEventListener('input', () => { const v = parseFloat(hueNumEl.value); if (!isNaN(v)) { hueShift = v; hueShiftEl.value = v; activePreset = null; clearPresetBtns(); fullUpdate(); } });
 
   targetLcSelect.addEventListener('change', () => { targetLc = parseInt(targetLcSelect.value); fullUpdate(); });
-
-  // --- Mode toggle ---
-  modeIndependent.addEventListener('click', () => {
-    mode = 'independent';
-    modeIndependent.classList.add('active');
-    modeRelative.classList.remove('active');
-    independentControls.classList.add('visible');
-    relativeControls.classList.remove('visible');
-    btnInsertRelative.style.display = 'none';
-    fullUpdate();
-  });
-  modeRelative.addEventListener('click', () => {
-    mode = 'relative';
-    modeRelative.classList.add('active');
-    modeIndependent.classList.remove('active');
-    relativeControls.classList.add('visible');
-    independentControls.classList.remove('visible');
-    btnInsertRelative.style.display = '';
-    fullUpdate();
-  });
 
   // --- Presets ---
   function clearPresetBtns() {
@@ -551,54 +611,59 @@ function getContrastWebviewHtml(
     });
   });
 
+  function setAllComponentVisibility() {
+    updateComponentVisibility('L');
+    updateComponentVisibility('C');
+    updateComponentVisibility('H');
+  }
+
   function applyPreset(preset) {
     switch (preset) {
       case 'accessible-text': {
         targetLcRow.classList.add('visible');
-        // Auto-compute lightness for target APCA Lc
         const result = findAccessibleTextL(baseL, baseC, baseH, targetLc);
-        lightnessEnabled = true; chkLightness.checked = true;
-        lightnessDir = result.direction; lightnessDirEl.value = result.direction;
+        modeL = result.direction; modeLEl.value = result.direction;
         lightnessAmount = result.amount; lightnessAmountEl.value = result.amount; lightnessNumEl.value = result.amount.toFixed(2);
-        chromaEnabled = true; chkChroma.checked = true;
+        modeC = 'relative'; modeCEl.value = 'relative';
         chromaScale = 0.3; chromaScaleEl.value = '0.3'; chromaNumEl.value = '0.3';
-        hueEnabled = false; chkHue.checked = false;
+        modeH = 'relative'; modeHEl.value = 'relative';
         hueShift = 0; hueShiftEl.value = '0'; hueNumEl.value = '0';
+        setAllComponentVisibility();
         break;
       }
       case 'subtle-bg': {
         targetLcRow.classList.remove('visible');
-        lightnessEnabled = true; chkLightness.checked = true;
-        // Direction: if base is light, go slightly lighter; if dark, slightly darker
         const baseIsLight = baseL > 0.5;
-        lightnessDir = baseIsLight ? 'darker' : 'lighter'; lightnessDirEl.value = lightnessDir;
+        modeL = baseIsLight ? 'darker' : 'lighter'; modeLEl.value = modeL;
         lightnessAmount = 0.05; lightnessAmountEl.value = '0.05'; lightnessNumEl.value = '0.05';
-        chromaEnabled = true; chkChroma.checked = true;
+        modeC = 'relative'; modeCEl.value = 'relative';
         chromaScale = 0.5; chromaScaleEl.value = '0.5'; chromaNumEl.value = '0.5';
-        hueEnabled = false; chkHue.checked = false;
+        modeH = 'relative'; modeHEl.value = 'relative';
         hueShift = 0; hueShiftEl.value = '0'; hueNumEl.value = '0';
+        setAllComponentVisibility();
         break;
       }
       case 'border': {
         targetLcRow.classList.remove('visible');
-        lightnessEnabled = true; chkLightness.checked = true;
         const baseIsLight2 = baseL > 0.5;
-        lightnessDir = baseIsLight2 ? 'darker' : 'lighter'; lightnessDirEl.value = lightnessDir;
+        modeL = baseIsLight2 ? 'darker' : 'lighter'; modeLEl.value = modeL;
         lightnessAmount = 0.15; lightnessAmountEl.value = '0.15'; lightnessNumEl.value = '0.15';
-        chromaEnabled = true; chkChroma.checked = true;
+        modeC = 'relative'; modeCEl.value = 'relative';
         chromaScale = 0.7; chromaScaleEl.value = '0.7'; chromaNumEl.value = '0.7';
-        hueEnabled = false; chkHue.checked = false;
+        modeH = 'relative'; modeHEl.value = 'relative';
         hueShift = 0; hueShiftEl.value = '0'; hueNumEl.value = '0';
+        setAllComponentVisibility();
         break;
       }
       case 'complementary': {
         targetLcRow.classList.remove('visible');
-        lightnessEnabled = false; chkLightness.checked = false;
+        modeL = 'lighter'; modeLEl.value = 'lighter';
         lightnessAmount = 0; lightnessAmountEl.value = '0'; lightnessNumEl.value = '0';
-        chromaEnabled = false; chkChroma.checked = false;
+        modeC = 'relative'; modeCEl.value = 'relative';
         chromaScale = 1; chromaScaleEl.value = '1'; chromaNumEl.value = '1';
-        hueEnabled = true; chkHue.checked = true;
+        modeH = 'relative'; modeHEl.value = 'relative';
         hueShift = 180; hueShiftEl.value = '180'; hueNumEl.value = '180';
+        setAllComponentVisibility();
         break;
       }
     }
@@ -655,65 +720,94 @@ function getContrastWebviewHtml(
     return { direction, amount: Math.round(amount * 100) / 100 };
   }
 
-  // --- Compute derived from relative transforms ---
-  function computeRelativeDerived() {
-    let dL = baseL, dC = baseC, dH = baseH, dA = baseA;
+  // --- Compute derived color (per-component) ---
+  function computeDerived() {
+    let dL, dC, dH;
 
-    if (lightnessEnabled) {
-      if (lightnessDir === 'lighter') {
-        dL = Math.min(1, baseL + lightnessAmount);
-      } else {
-        dL = Math.max(0, baseL - lightnessAmount);
-      }
-    }
-    if (chromaEnabled) {
-      dC = baseC * chromaScale;
-    }
-    if (hueEnabled) {
-      dH = ((baseH + hueShift) % 360 + 360) % 360;
+    if (modeL === 'lighter') {
+      dL = Math.min(1, baseL + lightnessAmount);
+    } else if (modeL === 'darker') {
+      dL = Math.max(0, baseL - lightnessAmount);
+    } else {
+      dL = indL;
     }
 
-    return { L: dL, C: dC, H: dH, alpha: dA };
+    dC = modeC === 'relative' ? baseC * chromaScale : indC;
+    dH = modeH === 'relative' ? ((baseH + hueShift) % 360 + 360) % 360 : indH;
+
+    return { L: dL, C: dC, H: dH, alpha: indA };
   }
 
-  // --- Generate CSS relative expression ---
+  // --- Generate CSS relative expression (mixed fixed/relative) ---
   function buildCssExpression() {
-    let lExpr = 'l', cExpr = 'c', hExpr = 'h';
+    let lExpr, cExpr, hExpr;
 
-    if (lightnessEnabled && lightnessAmount !== 0) {
-      const sign = lightnessDir === 'lighter' ? '+' : '-';
-      lExpr = 'calc(l ' + sign + ' ' + lightnessAmount.toFixed(2) + ')';
+    // Lightness
+    if (modeL !== 'fixed') {
+      if (lightnessAmount === 0) {
+        lExpr = 'l';
+      } else {
+        const sign = modeL === 'lighter' ? '+' : '-';
+        lExpr = 'calc(l ' + sign + ' ' + lightnessAmount.toFixed(2) + ')';
+      }
+    } else {
+      lExpr = fmtLightness === 'percentage'
+        ? parseFloat((indL * 100).toFixed(2)) + '%'
+        : '' + parseFloat(indL.toFixed(4));
     }
-    if (chromaEnabled && chromaScale !== 1) {
+
+    // Chroma
+    if (modeC === 'relative') {
       if (chromaScale === 0) {
         cExpr = '0';
+      } else if (chromaScale === 1) {
+        cExpr = 'c';
       } else {
         cExpr = 'calc(c * ' + chromaScale.toFixed(2) + ')';
       }
-    }
-    if (hueEnabled && hueShift !== 0) {
-      const sign = hueShift > 0 ? '+' : '-';
-      hExpr = 'calc(h ' + sign + ' ' + Math.abs(hueShift) + 'deg)';
+    } else {
+      cExpr = fmtChroma === 'percentage'
+        ? parseFloat((indC / 0.4 * 100).toFixed(2)) + '%'
+        : '' + parseFloat(indC.toFixed(4));
     }
 
-    return 'oklch(from var(--base) ' + lExpr + ' ' + cExpr + ' ' + hExpr + ')';
+    // Hue
+    if (modeH === 'relative') {
+      if (hueShift === 0) {
+        hExpr = 'h';
+      } else {
+        const sign = hueShift > 0 ? '+' : '-';
+        hExpr = 'calc(h ' + sign + ' ' + Math.abs(hueShift) + 'deg)';
+      }
+    } else {
+      hExpr = fmtHue === 'deg'
+        ? parseFloat(indH.toFixed(2)) + 'deg'
+        : '' + parseFloat(indH.toFixed(2));
+    }
+
+    let expr = 'oklch(from var(--base) ' + lExpr + ' ' + cExpr + ' ' + hExpr;
+    if (indA < 1) {
+      const aStr = fmtAlpha === 'percentage'
+        ? parseFloat((indA * 100).toFixed(0)) + '%'
+        : '' + parseFloat(indA.toFixed(2));
+      expr += ' / ' + aStr;
+    }
+    expr += ')';
+    return expr;
   }
 
   // --- Full UI update ---
   function fullUpdate() {
-    // Resolve derived color
-    if (mode === 'relative') {
-      // If accessible-text preset is active, re-run binary search
-      if (activePreset === 'accessible-text') {
-        const result = findAccessibleTextL(baseL, baseC, baseH, targetLc);
-        lightnessDir = result.direction; lightnessDirEl.value = result.direction;
-        lightnessAmount = result.amount; lightnessAmountEl.value = result.amount; lightnessNumEl.value = result.amount.toFixed(2);
-      }
-      const d = computeRelativeDerived();
-      derivedL = d.L; derivedC = d.C; derivedH = d.H; derivedA = d.alpha;
-    } else {
-      derivedL = indL; derivedC = indC; derivedH = indH; derivedA = indA;
+    // If accessible-text preset is active, re-run binary search
+    if (activePreset === 'accessible-text' && modeL !== 'fixed') {
+      const result = findAccessibleTextL(baseL, baseC, baseH, targetLc);
+      modeL = result.direction; modeLEl.value = result.direction;
+      lightnessAmount = result.amount; lightnessAmountEl.value = result.amount; lightnessNumEl.value = result.amount.toFixed(2);
     }
+
+    // Compute derived color
+    const d = computeDerived();
+    derivedL = d.L; derivedC = d.C; derivedH = d.H; derivedA = d.alpha;
 
     // Update base UI
     baseSliderL.value = baseL; baseSliderC.value = baseC; baseSliderH.value = baseH; baseSliderA.value = baseA;
@@ -729,14 +823,12 @@ function getContrastWebviewHtml(
     baseOklchText.textContent = formatOklchValue(baseL, baseC, baseH, baseA);
     baseHexText.textContent = baseA < 1 ? baseHex + Math.round(baseA*255).toString(16).padStart(2,'0') : baseHex;
 
-    // Update derived UI
-    if (mode === 'independent') {
-      derivedSliderL.value = indL; derivedSliderC.value = indC; derivedSliderH.value = indH; derivedSliderA.value = indA;
-      derivedNumL.value = fmtLightness === 'percentage' ? parseFloat((indL * 100).toFixed(2)) : parseFloat(indL.toFixed(4));
-      derivedNumC.value = fmtChroma === 'percentage' ? parseFloat((indC / 0.4 * 100).toFixed(2)) : parseFloat(indC.toFixed(4));
-      derivedNumH.value = parseFloat(indH.toFixed(2));
-      derivedNumA.value = fmtAlpha === 'percentage' ? parseFloat((indA * 100).toFixed(0)) : parseFloat(indA.toFixed(2));
-    }
+    // Update derived fixed sliders
+    derivedSliderL.value = indL; derivedSliderC.value = indC; derivedSliderH.value = indH; derivedSliderA.value = indA;
+    derivedNumL.value = fmtLightness === 'percentage' ? parseFloat((indL * 100).toFixed(2)) : parseFloat(indL.toFixed(4));
+    derivedNumC.value = fmtChroma === 'percentage' ? parseFloat((indC / 0.4 * 100).toFixed(2)) : parseFloat(indC.toFixed(4));
+    derivedNumH.value = parseFloat(indH.toFixed(2));
+    derivedNumA.value = fmtAlpha === 'percentage' ? parseFloat((indA * 100).toFixed(0)) : parseFloat(indA.toFixed(2));
 
     const derivedRgb = oklchToSrgb(derivedL, derivedC, derivedH);
     const dr = clamp01(derivedRgb.r), dg = clamp01(derivedRgb.g), db = clamp01(derivedRgb.b);
@@ -778,8 +870,8 @@ function getContrastWebviewHtml(
     // Alpha note
     alphaNote.style.display = (baseA < 1 || derivedA < 1) ? 'block' : 'none';
 
-    // CSS expression (relative mode)
-    if (mode === 'relative') {
+    // CSS expression (when any component is relative)
+    if (anyRelative()) {
       cssExpression.classList.add('visible');
       cssExprText.textContent = buildCssExpression();
     } else {
@@ -832,8 +924,16 @@ function getContrastWebviewHtml(
 
   // --- Keyboard navigation between sliders ---
   const baseSliders = [baseSliderL, baseSliderC, baseSliderH, baseSliderA];
-  const derivedSliders = [derivedSliderL, derivedSliderC, derivedSliderH, derivedSliderA];
   const actionBtns = [btnApply, btnInsert, btnInsertRelative];
+
+  function getVisibleDerivedControls() {
+    const controls = [];
+    controls.push(modeL !== 'fixed' ? lightnessAmountEl : derivedSliderL);
+    controls.push(modeC === 'relative' ? chromaScaleEl : derivedSliderC);
+    controls.push(modeH === 'relative' ? hueShiftEl : derivedSliderH);
+    controls.push(derivedSliderA);
+    return controls;
+  }
 
   function wireArrowNav(sliders, nextTarget) {
     sliders.forEach((slider, i) => {
@@ -843,7 +943,7 @@ function getContrastWebviewHtml(
           if (i < sliders.length - 1) {
             sliders[i + 1].focus();
           } else if (nextTarget) {
-            nextTarget.focus();
+            (typeof nextTarget === 'function' ? nextTarget() : nextTarget).focus();
           }
         } else if (e.key === 'ArrowUp') {
           e.preventDefault();
@@ -855,19 +955,39 @@ function getContrastWebviewHtml(
     });
   }
 
-  wireArrowNav(baseSliders, derivedSliderL);
-  wireArrowNav(derivedSliders, btnApply);
+  wireArrowNav(baseSliders, () => getVisibleDerivedControls()[0]);
+
+  // Dynamic arrow nav for derived controls
+  document.addEventListener('keydown', (e) => {
+    const controls = getVisibleDerivedControls();
+    const idx = controls.indexOf(document.activeElement);
+    if (idx === -1) return;
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      if (idx < controls.length - 1) {
+        controls[idx + 1].focus();
+      } else {
+        btnApply.focus();
+      }
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      if (idx > 0) {
+        controls[idx - 1].focus();
+      } else {
+        baseSliders[baseSliders.length - 1].focus();
+      }
+    }
+  });
 
   actionBtns.forEach((btn, i) => {
     btn.addEventListener('keydown', (e) => {
       if (e.key === 'ArrowUp') {
         e.preventDefault();
-        if (mode === 'independent') {
-          derivedSliders[derivedSliders.length - 1].focus();
-        }
+        const dc = getVisibleDerivedControls();
+        dc[dc.length - 1].focus();
       } else if (e.key === 'ArrowRight') {
         e.preventDefault();
-        // Find next visible button
         for (let j = 1; j <= actionBtns.length; j++) {
           const next = actionBtns[(i + j) % actionBtns.length];
           if (next.style.display !== 'none') { next.focus(); break; }
@@ -883,6 +1003,7 @@ function getContrastWebviewHtml(
   });
 
   // --- Init ---
+  setAllComponentVisibility();
   fullUpdate();
 </script>
 </body>
