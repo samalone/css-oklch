@@ -1,107 +1,45 @@
 import * as vscode from "vscode";
-import * as crypto from "crypto";
-import { findCssColorAtOffset } from "./cssColorParser";
+import {
+  OklchColor,
+  createPanel,
+  insertExpressionAtCursor,
+} from "./panelBase";
 import { getFormatOptions } from "./formatOklch";
-
-interface OklchColor {
-  L: number;
-  C: number;
-  H: number;
-  alpha: number;
-}
-
-let currentPanel: vscode.WebviewPanel | undefined;
-let lastEditor: vscode.TextEditor | undefined;
-let lastCursorOffset: number | undefined;
+import {
+  WEBVIEW_COLOR_CORE,
+  WEBVIEW_GAMUT_CHECK,
+  WEBVIEW_CONTRAST_MATH,
+  webviewFormatScript,
+} from "./webviewScripts";
+import {
+  CSS_BASE,
+  cssSliders,
+  CSS_COPY_BUTTON,
+  CSS_TRANSFORM_CONTROLS,
+  CSS_ACTION_BUTTONS,
+} from "./webviewStyles";
 
 export function openFormulaPanel(
   context: vscode.ExtensionContext,
   initialColor?: OklchColor
 ): void {
-  const editor = vscode.window.activeTextEditor;
-  if (editor) {
-    lastEditor = editor;
-    lastCursorOffset = editor.document.offsetAt(editor.selection.active);
-  }
-
-  if (currentPanel) {
-    currentPanel.reveal(vscode.ViewColumn.Beside);
-    if (initialColor) {
-      currentPanel.webview.postMessage({
-        command: "setInitialColor",
-        ...initialColor,
-      });
-    }
-    return;
-  }
-
-  const panel = vscode.window.createWebviewPanel(
-    "oklchAdaptiveFormula",
-    "OKLCH Adaptive Formula",
-    { viewColumn: vscode.ViewColumn.Beside, preserveFocus: true },
-    { enableScripts: true, retainContextWhenHidden: true }
-  );
-
-  currentPanel = panel;
-
-  function notifyCursorContext(): void {
-    if (!currentPanel || !lastEditor) {
-      return;
-    }
-    const text = lastEditor.document.getText();
-    const offset = lastCursorOffset ?? 0;
-    const match = findCssColorAtOffset(text, offset);
-    currentPanel.webview.postMessage({
-      command: "cursorContext",
-      hasCssColor: !!match,
-    });
-  }
-
-  context.subscriptions.push(
-    vscode.window.onDidChangeActiveTextEditor((e) => {
-      if (e) {
-        lastEditor = e;
-        lastCursorOffset = e.document.offsetAt(e.selection.active);
-        notifyCursorContext();
-      }
-    })
-  );
-
-  context.subscriptions.push(
-    vscode.window.onDidChangeTextEditorSelection((e) => {
-      lastEditor = e.textEditor;
-      lastCursorOffset = e.textEditor.document.offsetAt(e.selections[0].active);
-      notifyCursorContext();
-    })
-  );
-
-  panel.onDidDispose(() => {
-    currentPanel = undefined;
-  });
-
-  const nonce = crypto.randomBytes(16).toString("base64");
-  panel.webview.html = getFormulaWebviewHtml(nonce, initialColor);
-
-  panel.webview.onDidReceiveMessage(
-    (message) => {
-      if (!lastEditor) {
-        vscode.window.showWarningMessage("No active text editor.");
-        return;
-      }
-      const editor = lastEditor;
-
-      switch (message.command) {
-        case "insertRelative": {
-          const { expression } = message;
-          editor.edit((editBuilder) => {
-            editBuilder.insert(editor.selection.active, expression);
-          });
-          break;
+  createPanel(
+    {
+      viewType: "oklchAdaptiveFormula",
+      title: "OKLCH Adaptive Formula",
+      initialMessageCommand: "setInitialColor",
+      cursorContextMode: "boolean",
+      getHtml: (nonce, color) => getFormulaWebviewHtml(nonce, color),
+      handleMessage: (message, editor) => {
+        switch (message.command) {
+          case "insertRelative":
+            insertExpressionAtCursor(editor, message.expression);
+            break;
         }
-      }
+      },
     },
-    undefined,
-    context.subscriptions
+    context,
+    initialColor
   );
 }
 
@@ -122,32 +60,7 @@ function getFormulaWebviewHtml(
   <meta http-equiv="Content-Security-Policy"
     content="default-src 'none'; style-src 'nonce-${nonce}'; script-src 'nonce-${nonce}';">
   <style nonce="${nonce}">
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      background: var(--vscode-editor-background);
-      color: var(--vscode-editor-foreground);
-      font-family: var(--vscode-font-family, sans-serif);
-      font-size: var(--vscode-font-size, 13px);
-      padding: 12px;
-    }
-    h3 {
-      font-size: 12px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      opacity: 0.7;
-      margin-bottom: 8px;
-    }
-    .section {
-      margin-bottom: 16px;
-      padding-bottom: 16px;
-      border-bottom: 1px solid var(--vscode-panel-border, #444);
-    }
-    .section:last-child {
-      border-bottom: none;
-      margin-bottom: 0;
-      padding-bottom: 0;
-    }
+    ${CSS_BASE}
 
     /* Variable selector */
     .var-selector {
@@ -257,38 +170,7 @@ function getFormulaWebviewHtml(
       text-align: center;
     }
 
-    /* Sliders */
-    .sliders-grid {
-      display: grid;
-      grid-template-columns: auto 1fr auto auto;
-      grid-auto-rows: minmax(24px, auto);
-      gap: 6px 6px;
-      align-items: center;
-    }
-    .slider-label {
-      font-size: 11px;
-      font-weight: 600;
-      opacity: 0.7;
-      white-space: nowrap;
-    }
-    .sliders-grid input[type="range"] {
-      width: 100%;
-      min-width: 0;
-    }
-    .sliders-grid input[type="number"] {
-      width: 62px;
-      background: var(--vscode-input-background);
-      color: var(--vscode-input-foreground);
-      border: 1px solid var(--vscode-input-border, #444);
-      border-radius: 2px;
-      padding: 1px 3px;
-      font-family: var(--vscode-editor-font-family, monospace);
-      font-size: 11px;
-    }
-    .slider-unit {
-      font-size: 11px;
-      opacity: 0.6;
-    }
+    ${cssSliders()}
 
     /* Swatch */
     .swatch-wrap {
@@ -321,135 +203,11 @@ function getFormulaWebviewHtml(
       line-height: 1;
     }
 
-    /* Transform controls */
-    .transform-row {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      margin-bottom: 6px;
-    }
-    .transform-row input[type="checkbox"] {
-      flex-shrink: 0;
-    }
-    .transform-row label {
-      font-size: 12px;
-      min-width: 60px;
-      flex-shrink: 0;
-    }
-    .transform-row select {
-      background: var(--vscode-input-background);
-      color: var(--vscode-input-foreground);
-      border: 1px solid var(--vscode-input-border, #444);
-      border-radius: 2px;
-      padding: 1px 3px;
-      font-size: 11px;
-    }
-    .transform-row input[type="range"] {
-      flex: 1;
-      min-width: 0;
-    }
-    .transform-row input[type="number"] {
-      width: 56px;
-      background: var(--vscode-input-background);
-      color: var(--vscode-input-foreground);
-      border: 1px solid var(--vscode-input-border, #444);
-      border-radius: 2px;
-      padding: 1px 3px;
-      font-family: var(--vscode-editor-font-family, monospace);
-      font-size: 11px;
-    }
+    ${CSS_TRANSFORM_CONTROLS}
+    ${CSS_COPY_BUTTON}
 
-    /* Presets */
-    .presets {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 4px;
-      margin-bottom: 10px;
-    }
-    .preset-btn {
-      padding: 3px 8px;
-      font-size: 11px;
-      border: 1px solid var(--vscode-input-border, #444);
-      border-radius: 3px;
-      background: transparent;
-      color: var(--vscode-editor-foreground);
-      cursor: pointer;
-    }
-    .preset-btn:hover {
-      background: var(--vscode-toolbar-hoverBackground, rgba(90, 93, 94, 0.31));
-    }
-    .preset-btn.active {
-      border-color: var(--vscode-button-background);
-      background: var(--vscode-button-background);
-      color: var(--vscode-button-foreground);
-    }
-
-    /* Target Lc */
-    .target-lc-row {
-      display: none;
-      align-items: center;
-      gap: 6px;
-      margin-bottom: 6px;
-    }
-    .target-lc-row.visible { display: flex; }
-    .target-lc-row label {
-      font-size: 11px;
-      opacity: 0.7;
-    }
-    .target-lc-row select {
-      background: var(--vscode-input-background);
-      color: var(--vscode-input-foreground);
-      border: 1px solid var(--vscode-input-border, #444);
-      border-radius: 2px;
-      padding: 1px 3px;
-      font-size: 11px;
-    }
-
-    /* CSS expression */
+    /* CSS expression (always visible in formula panel) */
     .css-expression { margin-top: 8px; }
-    .css-expr-label {
-      font-size: 11px;
-      opacity: 0.7;
-      margin-bottom: 4px;
-    }
-    .css-expr-code {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      background: var(--vscode-input-background);
-      border: 1px solid var(--vscode-input-border, #444);
-      border-radius: 3px;
-      padding: 6px 8px;
-      font-family: var(--vscode-editor-font-family, monospace);
-      font-size: 12px;
-      word-break: break-all;
-    }
-    .css-expr-text { flex: 1; }
-    .copy-btn {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      background: none;
-      border: none;
-      padding: 1px 4px;
-      border-radius: 3px;
-      cursor: pointer;
-      color: var(--vscode-editor-foreground);
-      font-family: var(--vscode-editor-font-family, monospace);
-      font-size: 12px;
-    }
-    .copy-btn:hover {
-      background: var(--vscode-toolbar-hoverBackground, rgba(90, 93, 94, 0.31));
-    }
-    .copy-btn svg { opacity: 0.5; flex-shrink: 0; }
-    .copy-btn:hover svg { opacity: 1; }
-    .copied-msg {
-      font-size: 11px;
-      opacity: 0;
-      transition: opacity 0.15s;
-      margin-left: 2px;
-    }
-    .copied-msg.visible { opacity: 1; }
 
     /* Chart */
     .chart-wrap {
@@ -534,35 +292,7 @@ function getFormulaWebviewHtml(
       color: #f44336;
     }
 
-    /* Action buttons */
-    .buttons {
-      display: flex;
-      gap: 8px;
-      margin-top: 8px;
-    }
-    button.action {
-      background: var(--vscode-button-background);
-      color: var(--vscode-button-foreground);
-      border: none;
-      padding: 5px 12px;
-      border-radius: 2px;
-      cursor: pointer;
-      font-size: 12px;
-    }
-    button.action:hover {
-      background: var(--vscode-button-hoverBackground);
-    }
-    button.action.secondary {
-      background: var(--vscode-button-secondaryBackground);
-      color: var(--vscode-button-secondaryForeground);
-    }
-    button.action.secondary:hover {
-      background: var(--vscode-button-secondaryHoverBackground);
-    }
-    button.action:disabled {
-      opacity: 0.4;
-      cursor: default;
-    }
+    ${CSS_ACTION_BUTTONS}
   </style>
 </head>
 <body>
@@ -705,96 +435,11 @@ function getFormulaWebviewHtml(
 <script nonce="${nonce}">
   const vscodeApi = acquireVsCodeApi();
 
-  // --- Inline color conversion ---
-  function oklchToSrgb(L, C, H) {
-    const hRad = H * Math.PI / 180;
-    const a = C * Math.cos(hRad);
-    const b = C * Math.sin(hRad);
-    const l_ = L + 0.3963377774 * a + 0.2158037573 * b;
-    const m_ = L - 0.1055613458 * a - 0.0638541728 * b;
-    const s_ = L - 0.0894841775 * a - 1.291485548 * b;
-    const l = l_ * l_ * l_;
-    const m = m_ * m_ * m_;
-    const s = s_ * s_ * s_;
-    const rLin = +4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s;
-    const gLin = -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s;
-    const bLin = -0.0041960863 * l - 0.7034186147 * m + 1.707614701 * s;
-    return { r: linToSrgb(rLin), g: linToSrgb(gLin), b: linToSrgb(bLin) };
-  }
-  function linToSrgb(x) {
-    if (x <= 0.0031308) return 12.92 * x;
-    return 1.055 * Math.pow(x, 1 / 2.4) - 0.055;
-  }
-  function clamp01(x) { return Math.min(1, Math.max(0, x)); }
-  function toHex(r, g, b) {
-    const h = x => Math.min(255, Math.max(0, Math.round(x * 255))).toString(16).padStart(2, '0');
-    return '#' + h(r) + h(g) + h(b);
-  }
-  function isInGamut(r, g, b) {
-    return r >= -0.001 && r <= 1.001 && g >= -0.001 && g <= 1.001 && b >= -0.001 && b <= 1.001;
-  }
-
-  // --- APCA (inline) ---
-  function computeAPCA(text, bg) {
-    const lin = c => Math.pow(Math.max(c, 0), 2.4);
-    let Ytext = 0.2126729 * lin(text.r) + 0.7151522 * lin(text.g) + 0.072175 * lin(text.b);
-    let Ybg = 0.2126729 * lin(bg.r) + 0.7151522 * lin(bg.g) + 0.072175 * lin(bg.b);
-    if (Ytext < 0.022) Ytext += Math.pow(0.022 - Ytext, 1.414);
-    if (Ybg < 0.022) Ybg += Math.pow(0.022 - Ybg, 1.414);
-    let Lc;
-    if (Ybg > Ytext) {
-      Lc = (Math.pow(Ybg, 0.56) - Math.pow(Ytext, 0.57)) * 1.14 - 0.027;
-    } else {
-      Lc = (Math.pow(Ybg, 0.65) - Math.pow(Ytext, 0.62)) * 1.14 + 0.027;
-    }
-    if (Math.abs(Lc) < 0.001) return 0;
-    return Lc * 100;
-  }
-
-  function apcaDescription(lc) {
-    const abs = Math.abs(lc);
-    if (abs >= 90) return 'Preferred body text';
-    if (abs >= 75) return 'Body text (18px+)';
-    if (abs >= 60) return 'Content text / 16px bold';
-    if (abs >= 45) return 'Headlines / large text';
-    if (abs >= 30) return 'Spot text / minimum';
-    if (abs >= 15) return 'Non-text only';
-    return 'Not readable';
-  }
-
-  // --- WCAG 2.x (inline) ---
-  function computeWCAG(c1, c2) {
-    const srgbLin = v => v <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
-    const lum = c => 0.2126 * srgbLin(c.r) + 0.7152 * srgbLin(c.g) + 0.0722 * srgbLin(c.b);
-    const L1 = lum(c1), L2 = lum(c2);
-    const lighter = Math.max(L1, L2), darker = Math.min(L1, L2);
-    return (lighter + 0.05) / (darker + 0.05);
-  }
-
-  // --- Format settings ---
-  const fmtLightness = '${fmtOpts.lightnessFormat}';
-  const fmtChroma = '${fmtOpts.chromaFormat}';
-  const fmtHue = '${fmtOpts.hueFormat}';
-  const fmtAlpha = '${fmtOpts.alphaFormat}';
-
-  function formatOklchValue(L, C, H, A) {
-    const lStr = fmtLightness === 'percentage'
-      ? parseFloat((L * 100).toFixed(2)) + '%'
-      : '' + parseFloat(L.toFixed(4));
-    const cStr = fmtChroma === 'percentage'
-      ? parseFloat((C / 0.4 * 100).toFixed(2)) + '%'
-      : '' + parseFloat(C.toFixed(4));
-    const hStr = fmtHue === 'deg'
-      ? parseFloat(H.toFixed(2)) + 'deg'
-      : '' + parseFloat(H.toFixed(2));
-    if (A < 1) {
-      const aStr = fmtAlpha === 'percentage'
-        ? parseFloat((A * 100).toFixed(0)) + '%'
-        : '' + parseFloat(A.toFixed(2));
-      return 'oklch(' + lStr + ' ' + cStr + ' ' + hStr + ' / ' + aStr + ')';
-    }
-    return 'oklch(' + lStr + ' ' + cStr + ' ' + hStr + ')';
-  }
+  // --- Inline color conversion & math ---
+  ${WEBVIEW_COLOR_CORE}
+  ${WEBVIEW_GAMUT_CHECK}
+  ${WEBVIEW_CONTRAST_MATH}
+  ${webviewFormatScript(fmtOpts)}
 
   // --- State ---
   let variableComponent = 'H';
