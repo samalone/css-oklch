@@ -159,7 +159,7 @@ describe("findOklchAtOffset", () => {
 
   it("returns match at the end boundary", () => {
     const text = "color: oklch(0.7 0.15 180);";
-    const match = findOklchAtOffset(text, 26); // ')' closing paren
+    const match = findOklchAtOffset(text, 26); // endOffset (one past closing paren)
     expect(match).not.toBeNull();
   });
 

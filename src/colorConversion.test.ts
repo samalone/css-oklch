@@ -11,7 +11,7 @@ import {
 const EPSILON = 0.005;
 
 function closeTo(actual: number, expected: number, epsilon = EPSILON) {
-  expect(actual).toBeCloseTo(expected, -Math.log10(epsilon));
+  expect(Math.abs(actual - expected)).toBeLessThanOrEqual(epsilon);
 }
 
 describe("oklchToSrgb", () => {
@@ -257,7 +257,7 @@ describe("hslToSrgb", () => {
 
 describe("oklabToOklch", () => {
   it("converts zero a,b to zero chroma", () => {
-    const { L, C, H } = oklabToOklch(0.5, 0, 0);
+    const { L, C } = oklabToOklch(0.5, 0, 0);
     closeTo(L, 0.5);
     closeTo(C, 0);
   });
