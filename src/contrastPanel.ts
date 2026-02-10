@@ -254,28 +254,28 @@ function getContrastWebviewHtml(
 
     /* Sliders */
     .slider-group { margin-bottom: 4px; }
-    .slider-row {
-      display: flex;
+    .sliders-grid {
+      display: grid;
+      grid-template-columns: auto 1fr auto auto;
+      grid-auto-rows: minmax(24px, auto);
+      gap: 6px 6px;
       align-items: center;
-      gap: 6px;
-      margin-bottom: 2px;
     }
     .slider-label {
-      width: 18px;
       font-size: 11px;
-      flex-shrink: 0;
       font-weight: 600;
       opacity: 0.7;
+      white-space: nowrap;
     }
-    .slider-row input[type="range"] {
-      flex: 1;
+    .sliders-grid input[type="range"] {
+      width: 100%;
       min-width: 0;
     }
-    .slider-row input[type="range"]:focus {
+    .sliders-grid input[type="range"]:focus {
       outline: 2px solid var(--vscode-input-background);
       outline-offset: 2px;
     }
-    .slider-row input[type="number"] {
+    .sliders-grid input[type="number"] {
       width: 62px;
       background: var(--vscode-input-background);
       color: var(--vscode-input-foreground);
@@ -556,31 +556,26 @@ function getContrastWebviewHtml(
         <button class="copy-btn" id="baseCopyHex" title="Copy hex value"><svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><path d="M4 4h1V2a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1h-2v2a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h1zm1 0h4a1 1 0 0 1 1 1v5h1V2H6v2zm-2 1v8h6V5H3z"/></svg><span id="baseHexText"></span><span class="copied-msg" id="baseCopiedHex">Copied!</span></button>
       </div>
     </div>
-    <div class="slider-group">
-      <div class="slider-row">
-        <span class="slider-label">L</span>
-        <input type="range" id="baseSliderL" min="0" max="1" step="0.001">
-        <input type="number" id="baseNumL" min="0" max="${fmtOpts.lightnessFormat === "percentage" ? "100" : "1"}" step="${fmtOpts.lightnessFormat === "percentage" ? "0.1" : "0.001"}">
-        ${fmtOpts.lightnessFormat === "percentage" ? '<span class="slider-unit">%</span>' : ""}
-      </div>
-      <div class="slider-row">
-        <span class="slider-label">C</span>
-        <input type="range" id="baseSliderC" min="0" max="0.4" step="0.001">
-        <input type="number" id="baseNumC" min="0" max="${fmtOpts.chromaFormat === "percentage" ? "125" : "0.5"}" step="${fmtOpts.chromaFormat === "percentage" ? "0.1" : "0.001"}">
-        ${fmtOpts.chromaFormat === "percentage" ? '<span class="slider-unit">%</span>' : ""}
-      </div>
-      <div class="slider-row">
-        <span class="slider-label">H</span>
-        <input type="range" id="baseSliderH" min="0" max="360" step="0.5">
-        <input type="number" id="baseNumH" min="0" max="360" step="0.5">
-        ${fmtOpts.hueFormat === "deg" ? '<span class="slider-unit">deg</span>' : ""}
-      </div>
-      <div class="slider-row">
-        <span class="slider-label">A</span>
-        <input type="range" id="baseSliderA" min="0" max="1" step="0.01">
-        <input type="number" id="baseNumA" min="0" max="${fmtOpts.alphaFormat === "percentage" ? "100" : "1"}" step="${fmtOpts.alphaFormat === "percentage" ? "1" : "0.01"}">
-        ${fmtOpts.alphaFormat === "percentage" ? '<span class="slider-unit">%</span>' : ""}
-      </div>
+    <div class="slider-group sliders-grid">
+      <span class="slider-label">L</span>
+      <input type="range" id="baseSliderL" min="0" max="1" step="0.001">
+      <input type="number" id="baseNumL" min="0" max="${fmtOpts.lightnessFormat === "percentage" ? "100" : "1"}" step="${fmtOpts.lightnessFormat === "percentage" ? "0.1" : "0.001"}">
+      <span class="slider-unit">${fmtOpts.lightnessFormat === "percentage" ? "%" : ""}</span>
+
+      <span class="slider-label">C</span>
+      <input type="range" id="baseSliderC" min="0" max="0.4" step="0.001">
+      <input type="number" id="baseNumC" min="0" max="${fmtOpts.chromaFormat === "percentage" ? "125" : "0.5"}" step="${fmtOpts.chromaFormat === "percentage" ? "0.1" : "0.001"}">
+      <span class="slider-unit">${fmtOpts.chromaFormat === "percentage" ? "%" : ""}</span>
+
+      <span class="slider-label">H</span>
+      <input type="range" id="baseSliderH" min="0" max="360" step="0.5">
+      <input type="number" id="baseNumH" min="0" max="360" step="0.5">
+      <span class="slider-unit">${fmtOpts.hueFormat === "deg" ? "deg" : ""}</span>
+
+      <span class="slider-label">A</span>
+      <input type="range" id="baseSliderA" min="0" max="1" step="0.01">
+      <input type="number" id="baseNumA" min="0" max="${fmtOpts.alphaFormat === "percentage" ? "100" : "1"}" step="${fmtOpts.alphaFormat === "percentage" ? "1" : "0.01"}">
+      <span class="slider-unit">${fmtOpts.alphaFormat === "percentage" ? "%" : ""}</span>
     </div>
   </div>
 
@@ -630,31 +625,26 @@ function getContrastWebviewHtml(
 
     <!-- Independent mode sliders -->
     <div class="independent-controls visible" id="independentControls">
-      <div class="slider-group">
-        <div class="slider-row">
-          <span class="slider-label">L</span>
-          <input type="range" id="derivedSliderL" min="0" max="1" step="0.001">
-          <input type="number" id="derivedNumL" min="0" max="${fmtOpts.lightnessFormat === "percentage" ? "100" : "1"}" step="${fmtOpts.lightnessFormat === "percentage" ? "0.1" : "0.001"}">
-          ${fmtOpts.lightnessFormat === "percentage" ? '<span class="slider-unit">%</span>' : ""}
-        </div>
-        <div class="slider-row">
-          <span class="slider-label">C</span>
-          <input type="range" id="derivedSliderC" min="0" max="0.4" step="0.001">
-          <input type="number" id="derivedNumC" min="0" max="${fmtOpts.chromaFormat === "percentage" ? "125" : "0.5"}" step="${fmtOpts.chromaFormat === "percentage" ? "0.1" : "0.001"}">
-          ${fmtOpts.chromaFormat === "percentage" ? '<span class="slider-unit">%</span>' : ""}
-        </div>
-        <div class="slider-row">
-          <span class="slider-label">H</span>
-          <input type="range" id="derivedSliderH" min="0" max="360" step="0.5">
-          <input type="number" id="derivedNumH" min="0" max="360" step="0.5">
-          ${fmtOpts.hueFormat === "deg" ? '<span class="slider-unit">deg</span>' : ""}
-        </div>
-        <div class="slider-row">
-          <span class="slider-label">A</span>
-          <input type="range" id="derivedSliderA" min="0" max="1" step="0.01">
-          <input type="number" id="derivedNumA" min="0" max="${fmtOpts.alphaFormat === "percentage" ? "100" : "1"}" step="${fmtOpts.alphaFormat === "percentage" ? "1" : "0.01"}">
-          ${fmtOpts.alphaFormat === "percentage" ? '<span class="slider-unit">%</span>' : ""}
-        </div>
+      <div class="slider-group sliders-grid">
+        <span class="slider-label">L</span>
+        <input type="range" id="derivedSliderL" min="0" max="1" step="0.001">
+        <input type="number" id="derivedNumL" min="0" max="${fmtOpts.lightnessFormat === "percentage" ? "100" : "1"}" step="${fmtOpts.lightnessFormat === "percentage" ? "0.1" : "0.001"}">
+        <span class="slider-unit">${fmtOpts.lightnessFormat === "percentage" ? "%" : ""}</span>
+
+        <span class="slider-label">C</span>
+        <input type="range" id="derivedSliderC" min="0" max="0.4" step="0.001">
+        <input type="number" id="derivedNumC" min="0" max="${fmtOpts.chromaFormat === "percentage" ? "125" : "0.5"}" step="${fmtOpts.chromaFormat === "percentage" ? "0.1" : "0.001"}">
+        <span class="slider-unit">${fmtOpts.chromaFormat === "percentage" ? "%" : ""}</span>
+
+        <span class="slider-label">H</span>
+        <input type="range" id="derivedSliderH" min="0" max="360" step="0.5">
+        <input type="number" id="derivedNumH" min="0" max="360" step="0.5">
+        <span class="slider-unit">${fmtOpts.hueFormat === "deg" ? "deg" : ""}</span>
+
+        <span class="slider-label">A</span>
+        <input type="range" id="derivedSliderA" min="0" max="1" step="0.01">
+        <input type="number" id="derivedNumA" min="0" max="${fmtOpts.alphaFormat === "percentage" ? "100" : "1"}" step="${fmtOpts.alphaFormat === "percentage" ? "1" : "0.01"}">
+        <span class="slider-unit">${fmtOpts.alphaFormat === "percentage" ? "%" : ""}</span>
       </div>
     </div>
 

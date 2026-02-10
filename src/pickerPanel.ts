@@ -270,25 +270,26 @@ function getWebviewHtml(nonce: string, initialColor?: OklchColor): string {
     .slider-group {
       margin-bottom: 8px;
     }
-    .slider-row {
-      display: flex;
+    .sliders-grid {
+      display: grid;
+      grid-template-columns: auto 1fr auto auto;
+      grid-auto-rows: minmax(24px, auto);
+      gap: 6px 8px;
       align-items: center;
-      gap: 8px;
     }
     .slider-label {
-      width: 90px;
       font-size: 12px;
-      flex-shrink: 0;
+      white-space: nowrap;
     }
-    .slider-row input[type="range"] {
-      flex: 1;
+    .sliders-grid input[type="range"] {
+      width: 100%;
       min-width: 0;
     }
-    .slider-row input[type="range"]:focus {
+    .sliders-grid input[type="range"]:focus {
       outline: 2px solid var(--vscode-input-background);
       outline-offset: 2px;
     }
-    .slider-row input[type="number"] {
+    .sliders-grid input[type="number"] {
       width: 72px;
       background: var(--vscode-input-background);
       color: var(--vscode-input-foreground);
@@ -351,29 +352,26 @@ function getWebviewHtml(nonce: string, initialColor?: OklchColor): string {
   </div>
 
   <div class="slider-group">
-    <div class="slider-row">
+    <div class="sliders-grid">
       <span class="slider-label">L (Lightness)</span>
       <input type="range" id="sliderL" min="0" max="1" step="0.001">
       <input type="number" id="numL" min="0" max="${fmtOpts.lightnessFormat === "percentage" ? "100" : "1"}" step="${fmtOpts.lightnessFormat === "percentage" ? "0.1" : "0.001"}">
-      ${fmtOpts.lightnessFormat === "percentage" ? '<span class="slider-unit">%</span>' : ""}
-    </div>
-    <div class="slider-row">
+      <span class="slider-unit">${fmtOpts.lightnessFormat === "percentage" ? "%" : ""}</span>
+
       <span class="slider-label">C (Chroma)</span>
       <input type="range" id="sliderC" min="0" max="0.4" step="0.001">
       <input type="number" id="numC" min="0" max="${fmtOpts.chromaFormat === "percentage" ? "125" : "0.5"}" step="${fmtOpts.chromaFormat === "percentage" ? "0.1" : "0.001"}">
-      ${fmtOpts.chromaFormat === "percentage" ? '<span class="slider-unit">%</span>' : ""}
-    </div>
-    <div class="slider-row">
+      <span class="slider-unit">${fmtOpts.chromaFormat === "percentage" ? "%" : ""}</span>
+
       <span class="slider-label">H (Hue)</span>
       <input type="range" id="sliderH" min="0" max="360" step="0.5">
       <input type="number" id="numH" min="0" max="360" step="0.5">
-      ${fmtOpts.hueFormat === "deg" ? '<span class="slider-unit">deg</span>' : ""}
-    </div>
-    <div class="slider-row">
+      <span class="slider-unit">${fmtOpts.hueFormat === "deg" ? "deg" : ""}</span>
+
       <span class="slider-label">A (Alpha)</span>
       <input type="range" id="sliderA" min="0" max="1" step="0.01">
       <input type="number" id="numA" min="0" max="${fmtOpts.alphaFormat === "percentage" ? "100" : "1"}" step="${fmtOpts.alphaFormat === "percentage" ? "1" : "0.01"}">
-      ${fmtOpts.alphaFormat === "percentage" ? '<span class="slider-unit">%</span>' : ""}
+      <span class="slider-unit">${fmtOpts.alphaFormat === "percentage" ? "%" : ""}</span>
     </div>
   </div>
 

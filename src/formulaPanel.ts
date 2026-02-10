@@ -258,24 +258,24 @@ function getFormulaWebviewHtml(
     }
 
     /* Sliders */
-    .slider-row {
-      display: flex;
+    .sliders-grid {
+      display: grid;
+      grid-template-columns: auto 1fr auto auto;
+      grid-auto-rows: minmax(24px, auto);
+      gap: 6px 6px;
       align-items: center;
-      gap: 6px;
-      margin-bottom: 2px;
     }
     .slider-label {
-      width: 18px;
       font-size: 11px;
-      flex-shrink: 0;
       font-weight: 600;
       opacity: 0.7;
+      white-space: nowrap;
     }
-    .slider-row input[type="range"] {
-      flex: 1;
+    .sliders-grid input[type="range"] {
+      width: 100%;
       min-width: 0;
     }
-    .slider-row input[type="number"] {
+    .sliders-grid input[type="number"] {
       width: 62px;
       background: var(--vscode-input-background);
       color: var(--vscode-input-foreground);
@@ -288,7 +288,6 @@ function getFormulaWebviewHtml(
     .slider-unit {
       font-size: 11px;
       opacity: 0.6;
-      min-width: 20px;
     }
 
     /* Swatch */
@@ -894,38 +893,52 @@ function getFormulaWebviewHtml(
     fullUpdate();
   }
 
+  function buildSliderCells(comp) {
+    if (comp === 'L') {
+      return '<span class="slider-label">L</span>'
+        + '<input type="range" id="fixSliderL" min="0" max="1" step="0.001" value="' + fixedL + '">'
+        + '<input type="number" id="fixNumL" min="0" max="' + (fmtLightness === 'percentage' ? '100' : '1') + '" step="' + (fmtLightness === 'percentage' ? '0.1' : '0.001') + '">'
+        + '<span class="slider-unit">' + (fmtLightness === 'percentage' ? '%' : '') + '</span>';
+    } else if (comp === 'C') {
+      return '<span class="slider-label">C</span>'
+        + '<input type="range" id="fixSliderC" min="0" max="0.4" step="0.001" value="' + fixedC + '">'
+        + '<input type="number" id="fixNumC" min="0" max="' + (fmtChroma === 'percentage' ? '125' : '0.5') + '" step="' + (fmtChroma === 'percentage' ? '0.1' : '0.001') + '">'
+        + '<span class="slider-unit">' + (fmtChroma === 'percentage' ? '%' : '') + '</span>';
+    } else {
+      return '<span class="slider-label">H</span>'
+        + '<input type="range" id="fixSliderH" min="0" max="360" step="0.5" value="' + fixedH + '">'
+        + '<input type="number" id="fixNumH" min="0" max="360" step="0.5">'
+        + '<span class="slider-unit">' + (fmtHue === 'deg' ? 'deg' : '') + '</span>';
+    }
+  }
+
   function buildFixedSliders() {
     // Build all three component rows in L, C, H order.
-    // The variable component gets the range row (or hue arc); fixed components get sliders.
-    let html = '';
+    // Fixed components go into a CSS grid for aligned columns.
+    // The variable component's control (range row or hue arc) sits outside the grid.
+    // We build: [before-grid varSlot?] [grid of fixed sliders] [after-grid varSlot?]
+    // depending on where the variable falls in L, C, H order.
     const components = ['L', 'C', 'H'];
+    let beforeVar = '';
+    let afterVar = '';
+    let seenVar = false;
     components.forEach(comp => {
       if (comp === variableComponent) {
-        // Placeholder div that we'll fill with the range row or hue arc
-        html += '<div id="varSlot"></div>';
-      } else if (comp === 'L') {
-        html += '<div class="slider-row">'
-          + '<span class="slider-label">L</span>'
-          + '<input type="range" id="fixSliderL" min="0" max="1" step="0.001" value="' + fixedL + '">'
-          + '<input type="number" id="fixNumL" min="0" max="' + (fmtLightness === 'percentage' ? '100' : '1') + '" step="' + (fmtLightness === 'percentage' ? '0.1' : '0.001') + '">'
-          + (fmtLightness === 'percentage' ? '<span class="slider-unit">%</span>' : '')
-          + '</div>';
-      } else if (comp === 'C') {
-        html += '<div class="slider-row">'
-          + '<span class="slider-label">C</span>'
-          + '<input type="range" id="fixSliderC" min="0" max="0.4" step="0.001" value="' + fixedC + '">'
-          + '<input type="number" id="fixNumC" min="0" max="' + (fmtChroma === 'percentage' ? '125' : '0.5') + '" step="' + (fmtChroma === 'percentage' ? '0.1' : '0.001') + '">'
-          + (fmtChroma === 'percentage' ? '<span class="slider-unit">%</span>' : '')
-          + '</div>';
+        seenVar = true;
+        return;
+      }
+      const cells = buildSliderCells(comp);
+      if (!seenVar) {
+        beforeVar += cells;
       } else {
-        html += '<div class="slider-row">'
-          + '<span class="slider-label">H</span>'
-          + '<input type="range" id="fixSliderH" min="0" max="360" step="0.5" value="' + fixedH + '">'
-          + '<input type="number" id="fixNumH" min="0" max="360" step="0.5">'
-          + (fmtHue === 'deg' ? '<span class="slider-unit">deg</span>' : '')
-          + '</div>';
+        afterVar += cells;
       }
     });
+
+    let html = '';
+    if (beforeVar) html += '<div class="sliders-grid">' + beforeVar + '</div>';
+    html += '<div id="varSlot"></div>';
+    if (afterVar) html += '<div class="sliders-grid">' + afterVar + '</div>';
     fixedSlidersEl.innerHTML = html;
 
     // Move the range row or hue arc into the variable slot
